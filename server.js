@@ -20,7 +20,6 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Configuración del correo que envía 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
     host: 'smtp.gmail.com',
     port: 465,         // Cambia de 587 a 465
     secure: true,      // Cambia de false a true
@@ -303,6 +302,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 app.listen(PORT, () => {
     console.log(` Servidor RSB corriendo en http://localhost:${PORT}`);
 });
+
 
 
 
