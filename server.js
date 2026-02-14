@@ -64,13 +64,15 @@ const upload = multer({
 });
 
 // 3. CONEXIÓN A BASE DE DATOS (MySQL Local)
-// Cambiamos createConnection por createPool
-const db = mysql.createConnection({
-    host: process.env.DB_HOST,     // Hostinger te da este dato (ej. sql123.main-hosting.eu)
-    user: process.env.DB_USER,     // El usuario que creaste (u861584355_...)
-    password: process.env.DB_PASSWORD, // La contraseña que anotaste
-    database: process.env.DB_NAME, // u861584355_solicitudes_co
-    port: 3306                     // Puerto estándar de Hostinger
+const db = mysql.createPool({ // <-- Cambia a 'createPool'
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
 // Verificamos la conexión inicial
@@ -299,4 +301,5 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 app.listen(PORT, () => {
     console.log(` Servidor RSB corriendo en http://localhost:${PORT}`);
 });
+
 
