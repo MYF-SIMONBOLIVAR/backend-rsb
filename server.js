@@ -18,14 +18,17 @@ app.use(express.json());
 // Servir la carpeta uploads como estática para poder ver los PDFs/Imágenes desde el navegador
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Configuración del correo que envía 
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,         // Cambia de 587 a 465
-    secure: true,      // Cambia de false a true
+    port: 465,
+    secure: true,
     auth: {
         user: "notificacionesticsimonbolivar@gmail.com",
-        pass: "tvva tbwn hpjn lvwz" // Tu clave de aplicación está bien
+        pass: "tvva tbwn hpjn lvwz"
+    },
+    tls: {
+        // Esto evita que la conexión se caiga por temas de certificados
+        rejectUnauthorized: false 
     },
     debug: true,
     logger: true 
@@ -302,6 +305,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 app.listen(PORT, () => {
     console.log(` Servidor RSB corriendo en http://localhost:${PORT}`);
 });
+
 
 
 
