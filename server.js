@@ -10,7 +10,9 @@ const PORT = 3000;
 
 // 1. MIDDLEWARES
 app.use(cors({
-    origin: 'https://compras.repuestossimonbolivar.com'
+    origin: 'https://compras.repuestossimonbolivar.com', // Tu subdominio de Hostinger
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type']
 }));
 app.use(express.json());
 // Servir la carpeta uploads como estática para poder ver los PDFs/Imágenes desde el navegador
@@ -301,5 +303,6 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 app.listen(PORT, () => {
     console.log(` Servidor RSB corriendo en http://localhost:${PORT}`);
 });
+
 
 
