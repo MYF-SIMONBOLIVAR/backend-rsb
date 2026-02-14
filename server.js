@@ -22,8 +22,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
     auth: {
         user: "notificacionesticsimonbolivar@gmail.com",
         pass: "tvva tbwn hpjn lvwz" 
@@ -303,6 +303,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 app.listen(PORT, () => {
     console.log(` Servidor RSB corriendo en http://localhost:${PORT}`);
 });
+
 
 
 
