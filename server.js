@@ -22,14 +22,14 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
+    port: 465,         // Cambia de 587 a 465
+    secure: true,      // Cambia de false a true
     auth: {
         user: "notificacionesticsimonbolivar@gmail.com",
-        pass: "tvva tbwn hpjn lvwz" 
+        pass: "tvva tbwn hpjn lvwz" // Tu clave de aplicación está bien
     },
-    debug: true, // Muestra el rastro de la conexión
-    logger: true // Imprime el log en la consola
+    debug: true,
+    logger: true 
 });
 
 // Definimos los destinatarios como un solo string (IMPORTANTE)
@@ -303,6 +303,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 app.listen(PORT, () => {
     console.log(` Servidor RSB corriendo en http://localhost:${PORT}`);
 });
+
 
 
 
