@@ -20,14 +20,13 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const transporter = nodemailer.createTransport({
     host: 'smtp-relay.brevo.com',
-    port: 587,
-    secure: false, // False porque usamos TLS en el puerto 587
+    port: 465,               // CAMBIO: de 587 a 465
+    secure: true,            // CAMBIO: de false a true (Obligatorio para el 465)
     auth: {
         user: 'a290d3001@smtp-brevo.com',
-        pass: 'xsmtpsib-5aa5906bbc787e056a664f726bf56d3b911fb2444ffbe946d79e3d304db2e0f8-R9j49Uo9nXmeIiaB' // La contraseña de 16-20 caracteres que te dio Brevo
+        pass: 'xsmtpsib-5aa5906bbc787e056a664f726bf56d3b911fb2444ffbe946d79e3d304db2e0f8-R9j49Uo9nXmeIiaB'
     },
     tls: {
-        // Esto es vital para que Render no rechace la conexión
         rejectUnauthorized: false 
     }
 });
@@ -303,6 +302,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 app.listen(PORT, () => {
     console.log(` Servidor RSB corriendo en http://localhost:${PORT}`);
 });
+
 
 
 
