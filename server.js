@@ -5,6 +5,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Brevo = require('@getbrevo/brevo');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,26 +28,26 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // --- CONFIGURACIÓN DE ALMACENAMIENTO (MULTER) ---
-// --- NUEVA CONFIGURACIÓN DE ALMACENAMIENTO (CLOUDINARY) ---
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 // Configuración de las credenciales (Se recomienda usar variables de entorno en Render)
+// 2. Configuración (Asegúrate de que los nombres coincidan con lo que pusiste en Render)
 cloudinary.config({
-  cloud_name: process.env.NAME,   // El nombre que pusiste en Render
-  api_key:    process.env.KEY,    // La llave que pusiste en Render
-  api_secret: process.env.SECRET  // El secreto que pusiste en Render
+  cloud_name: process.env.NAME,
+  api_key:    process.env.KEY,
+  api_secret: process.env.SECRET
 });
 
-// Configuración del motor de almacenamiento para Multer
+// 3. El Storage
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'cotizaciones_rsb', // Carpeta que se creará en tu Cloudinary
-    allowed_formats: ['jpg', 'png', 'pdf'], // Formatos permitidos
+    folder: 'cotizaciones_rsb',
+    allowed_formats: ['jpg', 'png', 'pdf'],
     public_id: (req, file) => Date.now() + '-' + file.originalname.split('.')[0],
   },
 });
+
+const upload = multer({ storage: storage });;
 
 // El objeto 'upload' ahora usará Cloudinary en lugar del disco local
 const upload = multer({ 
@@ -69,6 +71,8 @@ const db = mysql.createPool({
 // 1. CREAR SOLICITUD (POST)
 // 1. CREAR SOLICITUD (POST)
 app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
+    console.log("--- Datos recibidos ---", req.body);
+    console.log("--- Archivo recibido ---", req.file);
     const { responsable, correo, proveedor, nit, valor, medioPago, centroCostos } = req.body;
     
     // CAMBIO AQUÍ: Usamos .path para obtener la URL de la nube
@@ -277,6 +281,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
