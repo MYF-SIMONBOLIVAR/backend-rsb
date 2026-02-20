@@ -63,18 +63,27 @@ const db = mysql.createPool({
 // 1. CREAR SOLICITUD (POST)
 // 1. CREAR SOLICITUD (POST)
 app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
-    console.log("--- Datos recibidos ---", req.body);
-    console.log("--- Archivo recibido ---", req.file);
-    const { responsable, correo, proveedor, nit, valor, medioPago, centroCostos } = req.body;
-    
-    // CAMBIO AQUÍ: Usamos .path para obtener la URL de la nube
-    const archivo = req.file ? req.file.path : null; 
+    try {
+        const { responsable, correo, proveedor, nit, valor, medioPago, centroCostos } = req.body;
+        
+        // Verificamos si Cloudinary subió el archivo y nos dio la URL
+        const archivoUrl = req.file ? req.file.path : null; 
+        
+        console.log("--- Procesando solicitud de:", responsable);
+        console.log("--- URL del archivo:", archivoUrl);
 
-    const sql = `INSERT INTO solicitudes_compra ...`; // Tu SQL sigue igual
-    const values = [responsable, correo, proveedor, nit, valor, medioPago, centroCostos, archivo];
+        const sql = `INSERT INTO solicitudes_compra 
+        (responsable, correo, proveedor, nit, valor, medio_pago, centro_costos, archivo_cotizacion) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    db.query(sql, values, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        const values = [responsable, correo, proveedor, nit, valor, medioPago, centroCostos, archivoUrl];
+
+        db.query(sql, values, (err, result) => {
+            if (err) {
+                // AQUÍ VEREMOS SI EL ERROR ES DE MYSQL
+                console.error("❌ ERROR MYSQL:", err.message);
+                return res.status(500).json({ error: "Error al guardar en base de datos" });
+            }
 
         // NOTIFICACIÓN A TIC (Aviso de nueva solicitud)
         const sendSmtpEmail = new Brevo.SendSmtpEmail();
@@ -273,6 +282,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
