@@ -26,14 +26,32 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // --- CONFIGURACIÓN DE ALMACENAMIENTO (MULTER) ---
-const uploadDir = './uploads';
-if (!fs.existsSync(uploadDir)) { fs.mkdirSync(uploadDir); }
+// --- NUEVA CONFIGURACIÓN DE ALMACENAMIENTO (CLOUDINARY) ---
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'uploads/'),
-    filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+// Configuración de las credenciales (Se recomienda usar variables de entorno en Render)
+cloudinary.config({
+  cloud_name: process.env.NAME,   // El nombre que pusiste en Render
+  api_key:    process.env.KEY,    // La llave que pusiste en Render
+  api_secret: process.env.SECRET  // El secreto que pusiste en Render
 });
-const upload = multer({ storage: storage, limits: { fileSize: 5 * 1024 * 1024 } });
+
+// Configuración del motor de almacenamiento para Multer
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'cotizaciones_rsb', // Carpeta que se creará en tu Cloudinary
+    allowed_formats: ['jpg', 'png', 'pdf'], // Formatos permitidos
+    public_id: (req, file) => Date.now() + '-' + file.originalname.split('.')[0],
+  },
+});
+
+// El objeto 'upload' ahora usará Cloudinary en lugar del disco local
+const upload = multer({ 
+    storage: storage, 
+    limits: { fileSize: 5 * 1024 * 1024 } // Mantenemos el límite de 5MB
+});
 
 // --- CONEXIÓN A BASE DE DATOS ---
 const db = mysql.createPool({
@@ -52,12 +70,11 @@ const db = mysql.createPool({
 // 1. CREAR SOLICITUD (POST)
 app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
     const { responsable, correo, proveedor, nit, valor, medioPago, centroCostos } = req.body;
-    const archivo = req.file ? req.file.filename : null;
+    
+    // CAMBIO AQUÍ: Usamos .path para obtener la URL de la nube
+    const archivoUrl = req.file ? req.file.path : null; 
 
-    const sql = `INSERT INTO solicitudes_compra 
-    (responsable, correo, proveedor, nit, valor, medio_pago, centro_costos, archivo_cotizacion) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-
+    const sql = `INSERT INTO solicitudes_compra ...`; // Tu SQL sigue igual
     const values = [responsable, correo, proveedor, nit, valor, medioPago, centroCostos, archivo];
 
     db.query(sql, values, (err, result) => {
@@ -260,6 +277,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
