@@ -70,7 +70,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
         sendSmtpEmail.htmlContent = `
             <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
                 <div style="background-color: #19287F; padding: 20px; text-align: center;">
-                    <h1 style="color: white; margin: 0; font-size: 20px; text-transform: uppercase;">Portal de Compras RSB</h1>
+                    <h1 style="color: white; margin: 0; font-size: 20px; text-transform: uppercase;">Portal de Solicitud de Compras </h1>
                 </div>
                 
                 <div style="padding: 30px; line-height: 1.6;">
@@ -161,29 +161,58 @@ app.put('/api/solicitudes/:id', async (req, res) => {
         await db.promise().query("UPDATE solicitudes_compra SET estado = ? WHERE id = ?", [estado, id]);
 
         // NOTIFICACIÓN AL EMPLEADO VÍA BREVO
-        const sendSmtpEmail = new Brevo.SendSmtpEmail();
-        sendSmtpEmail.subject = `Notificación: Solicitud de Compra ${estado}`;
-        sendSmtpEmail.htmlContent = `
-            <div style="font-family: Arial, sans-serif; border-top: 6px solid ${estado === 'Aprobado' ? '#2ecc71' : '#e74c3c'}; padding: 20px;">
-                <h2 style="color: #19287F;">Estado de su Solicitud</h2>
-                <p>Hola <b>${responsable}</b>,</p>
-                <p>Su solicitud para <b>${proveedor}</b> ha sido:</p>
-                <h1 style="color: ${estado === 'Aprobado' ? '#2ecc71' : '#e74c3c'};">${estado.toUpperCase()}</h1>
-                <p style="font-size: 12px; color: #666;">Mensaje automático del Portal RSB.</p>
-            </div>`;
-        sendSmtpEmail.sender = { "name": "Simon Bolivar", "email": "notificacionesticsimonbolivar@gmail.com" };
-        sendSmtpEmail.to = [{ "email": correo }];
+       sendSmtpEmail.subject = `${icono} Notificación de Solicitud: ${estado}`;
 
-        apiInstance.sendTransacEmail(sendSmtpEmail).then(
-            () => console.log(`✅ Notificación enviada a ${correo}`),
-            (error) => console.error("❌ Error Brevo (PUT):", error)
-        );
+sendSmtpEmail.htmlContent = `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: ${colorEstado}; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 20px; text-transform: uppercase;">Estado de su Solicitud</h1>
+        </div>
+        
+        <div style="padding: 30px; line-height: 1.6;">
+            <p style="font-size: 16px;">Cordial saludo, <b>${responsable}</b>.</p>
+            <p>Le informamos que el proceso de revisión para su solicitud de compra ha finalizado. El estado actual es:</p>
+            
+            <div style="text-align: center; margin: 25px 0; padding: 20px; background-color: #f8fafc; border-radius: 10px; border: 2px dashed ${colorEstado};">
+                <span style="font-size: 24px; font-weight: black; color: ${colorEstado}; text-transform: uppercase; letter-spacing: 2px;">
+                    ${estado}
+                </span>
+            </div>
 
-        res.json({ message: `Solicitud ${estado} correctamente.` });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <tr>
+                    <td style="padding: 8px 0; color: #64748b; font-size: 13px;"><b>PROVEEDOR:</b></td>
+                    <td style="padding: 8px 0; font-size: 14px;">${proveedor}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #64748b; font-size: 13px;"><b>ID SOLICITUD:</b></td>
+                    <td style="padding: 8px 0; font-size: 14px;">#${id}</td>
+                </tr>
+            </table>
+
+            <p style="font-size: 14px; color: #475569;">
+                ${estado === 'Aprobado' 
+                    ? 'Puede proceder con el trámite correspondiente según los lineamientos de la empresa.' 
+                    : 'Si tiene dudas sobre esta decisión, por favor póngase en contacto con el departamento de Gestion Humana.'}
+            </p>
+        </div>
+
+        <div style="background-color: #f1f5f9; padding: 15px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+            Atentamente,<br>
+            <b>Repuestos Simón Bolívar</b><br>
+            Este correo es informativo, agradecemos no responder a esta dirección.
+        </div>
+    </div>`;
+
+sendSmtpEmail.sender = { "name": "Sistema de Compras RSB", "email": "notificacionesticsimonbolivar@gmail.com" };
+sendSmtpEmail.to = [{ "email": correo }];
+
+apiInstance.sendTransacEmail(sendSmtpEmail).then(
+    () => console.log(`✅ Notificación de ${estado} enviada a ${correo}`),
+    (error) => console.error("❌ Error Brevo (PUT):", error.response ? error.response.body : error)
+);
+
+res.json({ message: `Solicitud ${estado} correctamente.` });
 
 // 4. ESTADÍSTICAS (GET)
 app.get('/api/stats', (req, res) => {
@@ -205,6 +234,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
