@@ -58,62 +58,6 @@ const db = mysql.createPool({
     connectionLimit: 10
 });
 
-// --- RUTAS DEL API ---
-
-// 1. CREAR SOLICITUD (POST)
-const express = require('express');
-const mysql = require('mysql2');
-const cors = require('cors');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const Brevo = require('@getbrevo/brevo');
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// --- 1. CONFIGURACIÓN DE BREVO ---
-let apiInstance = new Brevo.TransactionalEmailsApi();
-let apiKey = apiInstance.authentications['apiKey'];
-apiKey.apiKey = process.env.BREVO_API_KEY;
-
-// --- 2. CONFIGURACIÓN DE CLOUDINARY ---
-cloudinary.config({
-  cloud_name: process.env.NAME,
-  api_key:    process.env.KEY,
-  api_secret: process.env.SECRET
-});
-
-// --- 3. MIDDLEWARES ---
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE'], allowedHeaders: ['Content-Type'] }));
-app.use(express.json());
-
-// --- 4. CONFIGURACIÓN DE ALMACENAMIENTO ---
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'cotizaciones_rsb',
-    allowed_formats: ['jpg', 'png', 'pdf'],
-    public_id: (req, file) => Date.now() + '-' + file.originalname.split('.')[0],
-  },
-});
-const upload = multer({ storage: storage, limits: { fileSize: 5 * 1024 * 1024 } });
-
-// --- 5. CONEXIÓN A BASE DE DATOS ---
-const db = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: 3306,
-    waitForConnections: true,
-    connectionLimit: 10
-});
-
-// --- 6. RUTAS ---
-
 // A. CREAR SOLICITUD
 app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
     try {
@@ -296,6 +240,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
