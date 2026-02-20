@@ -142,7 +142,11 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
         );
 
         res.status(200).json({ message: 'Solicitud enviada exitosamente.' });
-    });
+        });
+    } catch (error) {
+        console.error("❌ ERROR CRÍTICO:", error.message);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
 });
 
 // 2. LISTADO CON FILTROS (GET)
@@ -282,6 +286,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
