@@ -72,7 +72,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
     const { responsable, correo, proveedor, nit, valor, medioPago, centroCostos } = req.body;
     
     // CAMBIO AQUÍ: Usamos .path para obtener la URL de la nube
-    const archivoUrl = req.file ? req.file.path : null; 
+    const archivo = req.file ? req.file.path : null; 
 
     const sql = `INSERT INTO solicitudes_compra ...`; // Tu SQL sigue igual
     const values = [responsable, correo, proveedor, nit, valor, medioPago, centroCostos, archivo];
@@ -277,6 +277,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
