@@ -14,30 +14,24 @@ const PORT = process.env.PORT || 3000;
 // --- CONFIGURACIÓN DE BREVO API ---
 let apiInstance = new Brevo.TransactionalEmailsApi();
 let apiKey = apiInstance.authentications['apiKey'];
-
-// Ahora leemos la clave desde las variables de entorno de Render
 apiKey.apiKey = process.env.BREVO_API_KEY;
 
 // --- MIDDLEWARES ---
 app.use(cors({
-    origin: '*', // Permitir acceso desde cualquier origen para evitar bloqueos CORS
+    origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type']
 }));
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// --- CONFIGURACIÓN DE ALMACENAMIENTO (MULTER) ---
-
-// Configuración de las credenciales (Se recomienda usar variables de entorno en Render)
-// 2. Configuración (Asegúrate de que los nombres coincidan con lo que pusiste en Render)
+// --- CONFIGURACIÓN DE CLOUDINARY ---
 cloudinary.config({
   cloud_name: process.env.NAME,
   api_key:    process.env.KEY,
   api_secret: process.env.SECRET
 });
 
-// 3. El Storage
+// --- CONFIGURACIÓN DE ALMACENAMIENTO (MULTER + CLOUDINARY) ---
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -47,13 +41,11 @@ const storage = new CloudinaryStorage({
   },
 });
 
-const upload = multer({ storage: storage });;
-
-// El objeto 'upload' ahora usará Cloudinary en lugar del disco local
+// AQUÍ CORREGIDO: Solo una declaración de 'upload'
 const upload = multer({ 
     storage: storage, 
-    limits: { fileSize: 5 * 1024 * 1024 } // Mantenemos el límite de 5MB
-});
+    limits: { fileSize: 5 * 1024 * 1024 } 
+});;
 
 // --- CONEXIÓN A BASE DE DATOS ---
 const db = mysql.createPool({
@@ -281,6 +273,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
