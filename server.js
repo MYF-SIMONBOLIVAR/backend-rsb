@@ -7,6 +7,12 @@ const fs = require('fs');
 const nodemailer = require('nodemailer');
 const app = express();
 const PORT = 3000;
+const Brevo = require('@getbrevo/brevo');
+
+// Configuración de la API
+let apiInstance = new Brevo.TransactionalEmailsApi();
+let apiKey = apiInstance.authentications['apiKey'];
+apiKey.apiKey = 'xsmtpsib-5aa5906bbc787e056a664f726bf56d3b911fb2444ffbe946d79e3d304db2e0f8-R9j49Uo9nXmeIiaB';
 
 // 1. MIDDLEWARES
 app.use(cors({
@@ -280,28 +286,40 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
         console.log("✅ Solicitud guardada con ID:", result.insertId);
 
-        // Notificación por correo al área encargada (DESTINATARIOS)
-        const mailOptions = {
-            from: '"Portal RSB" <notificacionesticsimonbolivar@gmail.com>',
-            to: "tic3@repuestossimonbolivar.com", 
-            subject: `Nueva Solicitud: ${responsable} - ${proveedor}`,
-            html: `
-                <div style="font-family: sans-serif; border-top: 5px solid #19287F; padding: 20px;">
-                    <h2 style="color: #19287F;">Nueva Solicitud Recibida</h2>
-                    <p><b>Responsable:</b> ${responsable}</p>
-                    <p><b>Proveedor:</b> ${proveedor}</p>
-                    <p><b>Valor:</b> $${Number(valor).toLocaleString()}</p>
-                    <hr>
-                    <p>Acceda al panel administrativo para aprobarla.</p>
-                </div>`
-        };
+        // --- CAMBIO A API DE BREVO ---
+        const sendSmtpEmail = new Brevo.SendSmtpEmail();
 
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) console.log("⚠️ Error enviando aviso inicial:", error.message);
-            else console.log("🚀 Aviso de nueva solicitud enviado.");
+        sendSmtpEmail.subject = `🚨 Nueva Solicitud: ${responsable} - ${proveedor}`;
+        sendSmtpEmail.htmlContent = `
+            <div style="font-family: sans-serif; border-top: 5px solid #19287F; padding: 20px; color: #333;">
+                <h2 style="color: #19287F;">Nueva Solicitud Recibida</h2>
+                <p>Se ha registrado una nueva solicitud en el portal:</p>
+                <p><b>Responsable:</b> ${responsable}</p>
+                <p><b>Proveedor:</b> ${proveedor}</p>
+                <p><b>Valor:</b> $${Number(valor).toLocaleString()}</p>
+                <p><b>Medio de Pago:</b> ${medioPago}</p>
+                <hr style="border: none; border-top: 1px solid #eee;">
+                <p>Acceda al panel administrativo para gestionarla.</p>
+                <a href="https://backend-rsb.onrender.com/admin" 
+                   style="display: inline-block; padding: 10px 20px; background-color: #19287F; color: #fff; text-decoration: none; border-radius: 5px;">
+                   Ir al Panel Admin
+                </a>
+            </div>`;
+
+        // IMPORTANTE: El email del sender debe estar verificado en Brevo
+        sendSmtpEmail.sender = { "name": "Portal RSB", "email": "notificacionesticsimonbolivar@gmail.com" };
+        
+        // Destinatario
+        sendSmtpEmail.to = [{ "email": "tic3@repuestossimonbolivar.com" }];
+
+        // Envío mediante la API (Puerto 443, no se bloquea)
+        apiInstance.sendTransacEmail(sendSmtpEmail).then(function(data) {
+            console.log("🚀 Aviso de nueva solicitud enviado vía API.");
+        }, function(error) {
+            console.error("⚠️ Error enviando aviso vía API:", error);
         });
 
-        // Respuesta al navegador para que el botón se destrabe
+        // Respuesta inmediata al cliente
         res.status(200).json({ message: 'Solicitud enviada exitosamente.' });
     });
 });
@@ -310,6 +328,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 app.listen(PORT, () => {
     console.log(` Servidor RSB corriendo en http://localhost:${PORT}`);
 });
+
 
 
 
