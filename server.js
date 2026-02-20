@@ -140,7 +140,8 @@ app.post('/api/actualizar-estado', async (req, res) => {
 // B. Obtener todas las solicitudes pendientes (Para admin.html)
 
 app.get('/api/solicitudes', (req, res) => {
-    const { inicio, fin, medio, proveedor } = req.query;
+    // Añadimos 'estado' a la desestructuración de req.query
+    const { inicio, fin, medio, proveedor, estado } = req.query;
     
     let sql = "SELECT * FROM solicitudes_compra WHERE 1=1";
     const values = [];
@@ -154,12 +155,18 @@ app.get('/api/solicitudes', (req, res) => {
         values.push(medio);
     }
     if (proveedor) {
-        sql += " AND proveedor LIKE ?";
-        values.push(`%${proveedor}%`);
+        sql += " AND (proveedor LIKE ? OR responsable LIKE ?)";
+        values.push(`%${proveedor}%`, `%${proveedor}%`);
+    }
+    
+    // NUEVO: Filtro por estado
+    if (estado) {
+        sql += " AND estado = ?";
+        values.push(estado);
     }
 
-    // Reemplaza tu línea de SQL += " ORDER BY..." por esta:
-sql += " ORDER BY FIELD(estado, 'Pendiente', 'Aprobado', 'Rechazado'), fecha_creacion DESC";
+    // Mantenemos tu orden jerárquico (Pendientes primero)
+    sql += " ORDER BY FIELD(estado, 'Pendiente', 'Aprobado', 'Rechazado'), fecha_creacion DESC";
 
     db.query(sql, values, (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -303,6 +310,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 app.listen(PORT, () => {
     console.log(` Servidor RSB corriendo en http://localhost:${PORT}`);
 });
+
 
 
 
