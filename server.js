@@ -12,7 +12,9 @@ const PORT = process.env.PORT || 3000;
 // --- CONFIGURACIÓN DE BREVO API ---
 let apiInstance = new Brevo.TransactionalEmailsApi();
 let apiKey = apiInstance.authentications['apiKey'];
-apiKey.apiKey = 'xsmtpsib-5aa5906bbc787e056a664f726bf56d3b911fb2444ffbe946d79e3d304db2e0f8-R9j49Uo9nXmeIiaB';
+
+// Ahora leemos la clave desde las variables de entorno de Render
+apiKey.apiKey = process.env.BREVO_API_KEY;
 
 // --- MIDDLEWARES ---
 app.use(cors({
@@ -165,6 +167,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
