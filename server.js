@@ -37,9 +37,9 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'cotizaciones_rsb',
-    allowed_formats: ['jpg', 'png', 'pdf'],
-    // AGREGA ESTA LÍNEA PARA EVITAR EL ERROR 401:
-    type: 'upload', 
+    // Cambiamos 'raw' por 'image' para que Cloudinary lo trate como asset estándar
+    resource_type: 'image', 
+    format: async (req, file) => 'pdf', 
     public_id: (req, file) => Date.now() + '-' + file.originalname.split('.')[0],
   },
 });
@@ -243,6 +243,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
