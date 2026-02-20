@@ -61,16 +61,64 @@ const db = mysql.createPool({
 // --- RUTAS DEL API ---
 
 // 1. CREAR SOLICITUD (POST)
-// 1. CREAR SOLICITUD (POST)
+const express = require('express');
+const mysql = require('mysql2');
+const cors = require('cors');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const Brevo = require('@getbrevo/brevo');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// --- 1. CONFIGURACIÓN DE BREVO ---
+let apiInstance = new Brevo.TransactionalEmailsApi();
+let apiKey = apiInstance.authentications['apiKey'];
+apiKey.apiKey = process.env.BREVO_API_KEY;
+
+// --- 2. CONFIGURACIÓN DE CLOUDINARY ---
+cloudinary.config({
+  cloud_name: process.env.NAME,
+  api_key:    process.env.KEY,
+  api_secret: process.env.SECRET
+});
+
+// --- 3. MIDDLEWARES ---
+app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE'], allowedHeaders: ['Content-Type'] }));
+app.use(express.json());
+
+// --- 4. CONFIGURACIÓN DE ALMACENAMIENTO ---
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'cotizaciones_rsb',
+    allowed_formats: ['jpg', 'png', 'pdf'],
+    public_id: (req, file) => Date.now() + '-' + file.originalname.split('.')[0],
+  },
+});
+const upload = multer({ storage: storage, limits: { fileSize: 5 * 1024 * 1024 } });
+
+// --- 5. CONEXIÓN A BASE DE DATOS ---
+const db = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: 3306,
+    waitForConnections: true,
+    connectionLimit: 10
+});
+
+// --- 6. RUTAS ---
+
+// A. CREAR SOLICITUD
 app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
     try {
         const { responsable, correo, proveedor, nit, valor, medioPago, centroCostos } = req.body;
-        
-        // Verificamos si Cloudinary subió el archivo y nos dio la URL
-        const archivoUrl = req.file ? req.file.path : null; 
-        
-        console.log("--- Procesando solicitud de:", responsable);
-        console.log("--- URL del archivo:", archivoUrl);
+        const archivoUrl = req.file ? req.file.path : null;
 
         const sql = `INSERT INTO solicitudes_compra 
         (responsable, correo, proveedor, nit, valor, medio_pago, centro_costos, archivo_cotizacion) 
@@ -80,72 +128,34 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
         db.query(sql, values, (err, result) => {
             if (err) {
-                // AQUÍ VEREMOS SI EL ERROR ES DE MYSQL
-                console.error("❌ ERROR MYSQL:", err.message);
-                return res.status(500).json({ error: "Error al guardar en base de datos" });
+                console.error("❌ Error MySQL:", err.message);
+                return res.status(500).json({ error: "Error en base de datos" });
             }
 
-        // NOTIFICACIÓN A TIC (Aviso de nueva solicitud)
-        const sendSmtpEmail = new Brevo.SendSmtpEmail();
-        sendSmtpEmail.subject = ` Nueva Solicitud de Compra: ${responsable} - ${proveedor}`;
-        
-        sendSmtpEmail.htmlContent = `
-            <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-                <div style="background-color: #19287F; padding: 20px; text-align: center;">
-                    <h1 style="color: white; margin: 0; font-size: 20px; text-transform: uppercase;">Portal de Solicitud de Compras </h1>
-                </div>
-                
-                <div style="padding: 30px; line-height: 1.6;">
-                    <p style="font-size: 16px;">Cordial saludo,</p>
-                    <p>Se ha registrado una <b>nueva solicitud de compra</b> en el sistema que requiere su revisión y aprobación. A continuación, se detallan los puntos clave de la solicitud:</p>
-                    
-                    <div style="background-color: #f8fafc; border-radius: 6px; padding: 20px; margin: 20px 0; border: 1px left solid #19287F;">
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <tr>
-                                <td style="padding: 5px 0; color: #64748b; font-size: 13px; text-transform: uppercase;"><b>Responsable:</b></td>
-                                <td style="padding: 5px 0; font-size: 14px;">${responsable}</td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 5px 0; color: #64748b; font-size: 13px; text-transform: uppercase;"><b>Proveedor:</b></td>
-                                <td style="padding: 5px 0; font-size: 14px;">${proveedor} (NIT: ${nit})</td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 5px 0; color: #64748b; font-size: 13px; text-transform: uppercase;"><b>Centro de Costos:</b></td>
-                                <td style="padding: 5px 0; font-size: 14px;">${centroCostos || 'No especificado'}</td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 5px 0; color: #64748b; font-size: 13px; text-transform: uppercase;"><b>Valor Total:</b></td>
-                                <td style="padding: 5px 0; font-size: 18px; color: #19287F;"><b>$${Number(valor).toLocaleString()}</b></td>
-                            </tr>
-                        </table>
-                    </div>
+            // Notificación a TIC
+            const sendSmtpEmail = new Brevo.SendSmtpEmail();
+            sendSmtpEmail.subject = `🚨 Nueva Solicitud: ${responsable} - ${proveedor}`;
+            sendSmtpEmail.htmlContent = `
+                <div style="font-family: sans-serif; padding: 20px; border-top: 5px solid #19287F;">
+                    <h2>Nueva Solicitud de Compra</h2>
+                    <p><b>Responsable:</b> ${responsable}</p>
+                    <p><b>Proveedor:</b> ${proveedor}</p>
+                    <p><b>Valor:</b> $${Number(valor).toLocaleString()}</p>
+                    <br>
+                    <a href="https://compras.repuestossimonbolivar.com/admin" style="background:#19287F; color:white; padding:10px; text-decoration:none; border-radius:5px;">GESTIONAR PANEL</a>
+                    ${archivoUrl ? `<a href="${archivoUrl}" style="background:#e2e8f0; color:#19287F; padding:10px; text-decoration:none; border-radius:5px; margin-left:10px;">VER ADJUNTO</a>` : ''}
+                </div>`;
+            
+            sendSmtpEmail.sender = { "name": "Sistema RSB", "email": "notificacionesticsimonbolivar@gmail.com" };
+            sendSmtpEmail.to = [{ "email": "tic3@repuestossimonbolivar.com" }];
 
-                    <p style="text-align: center; margin-top: 30px;">
-                        <a href="https://compras.repuestossimonbolivar.com/admin" 
-                           style="background-color: #19287F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 14px;">
-                           GESTIONAR SOLICITUD 
-                        </a>
-                    </p>
-                </div>
+            apiInstance.sendTransacEmail(sendSmtpEmail).catch(e => console.error("Error Brevo:", e));
 
-                <div style="background-color: #f1f5f9; padding: 15px; text-align: center; font-size: 11px; color: #94a3b8;">
-                    Este es un mensaje automático generado por el Sistema de Gestión de Compras de <b>Repuestos Simón Bolívar</b>. Por favor no responda a este correo.
-                </div>
-            </div>`;
-
-        sendSmtpEmail.sender = { "name": "Sistema de Compras RSB", "email": "notificacionesticsimonbolivar@gmail.com" };
-        sendSmtpEmail.to = [{ "email": "tic3@repuestossimonbolivar.com" }];
-
-        apiInstance.sendTransacEmail(sendSmtpEmail).then(
-            (data) => console.log("🚀 Correo profesional enviado:", data.messageId),
-            (error) => console.error("❌ ERROR REAL DE BREVO:", error.response.body)
-        );
-
-        res.status(200).json({ message: 'Solicitud enviada exitosamente.' });
+            res.status(200).json({ message: 'Solicitud enviada' });
         });
     } catch (error) {
-        console.error("❌ ERROR CRÍTICO:", error.message);
-        res.status(500).json({ error: "Error interno del servidor" });
+        console.error("❌ Error Crítico:", error);
+        res.status(500).json({ error: "Error interno" });
     }
 });
 
@@ -286,6 +296,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
