@@ -77,9 +77,12 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
         sendSmtpEmail.to = [{ "email": "tic3@repuestossimonbolivar.com" }];
 
         apiInstance.sendTransacEmail(sendSmtpEmail).then(
-            () => console.log("🚀 Aviso enviado a TIC"),
-            (error) => console.error("❌ Error Brevo (POST):", error)
-        );
+    (data) => console.log("🚀 Correo enviado:", data.messageId),
+    (error) => {
+        // Esto nos mostrará el mensaje exacto (ej. "Unauthorized", "Account disabled", etc.)
+        console.error("❌ ERROR REAL DE BREVO:", error.response.body);
+    }
+);
 
         res.status(200).json({ message: 'Solicitud enviada exitosamente.' });
     });
@@ -167,6 +170,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
