@@ -37,10 +37,11 @@ const storage = new CloudinaryStorage({
   params: {
     folder: 'cotizaciones_rsb',
     resource_type: 'raw', 
-    // Forzamos la extensión .pdf al final del nombre
+    // Forzamos que el nombre del archivo incluya la extensión .pdf
     public_id: (req, file) => {
-        const nombreLimpio = file.originalname.split('.')[0].replace(/\s+/g, '_');
-        return `${Date.now()}-${nombreLimpio}.pdf`;
+        // Limpiamos el nombre original de espacios y caracteres especiales
+        const nombreBase = file.originalname.split('.')[0].replace(/\s+/g, '_');
+        return `${Date.now()}-${nombreBase}.pdf`;
     },
   },
 });
@@ -278,6 +279,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
