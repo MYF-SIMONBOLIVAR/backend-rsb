@@ -112,7 +112,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
             </div>`;
 
         sendSmtpEmail.sender = { "name": "Sistema de Compras RSB", "email": "notificacionesticsimonbolivar@gmail.com" };
-        sendSmtpEmail.to = [{ "email": "tic3@repuestossimonbolivar.com" }];
+        sendSmtpEmail.to = [{ "email": "directoradministrativo@repuestossimonbolivar.com" }];
 
         apiInstance.sendTransacEmail(sendSmtpEmail).then(
             (data) => console.log("🚀 Correo profesional enviado:", data.messageId),
@@ -204,8 +204,8 @@ app.put('/api/solicitudes/:id', async (req, res) => {
                             <td style="padding: 8px 0; font-size: 14px;">${proveedor}</td>
                         </tr>
                         <tr>
-                            <td style="padding: 8px 0; color: #64748b; font-size: 13px;"><b>ID SOLICITUD:</b></td>
-                            <td style="padding: 8px 0; font-size: 14px;">#${id}</td>
+                            <td style="padding: 8px 0; color: #64748b; font-size: 13px;"><b>VALOR SOLICITADO:</b></td>
+                            <td style="padding: 8px 0; font-size: 16px; color: #19287F;"><b>$${Number(valor).toLocaleString()}</b></td>
                         </tr>
                     </table>
 
@@ -260,6 +260,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
