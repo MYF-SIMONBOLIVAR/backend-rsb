@@ -8,6 +8,7 @@ const nodemailer = require('nodemailer');
 const app = express();
 const PORT = 3000;
 const Brevo = require('@getbrevo/brevo');
+const sendSmtpEmail = new Brevo.SendSmtpEmail();
 
 // Configuración de la API
 let apiInstance = new Brevo.TransactionalEmailsApi();
@@ -95,53 +96,23 @@ db.getConnection((err, connection) => {
 // 4. RUTAS DEL API
 // A. Crear nueva solicitud (Desde index.html)
 
-app.post('/api/actualizar-estado', async (req, res) => {
-    const { id, nuevoEstado, motivo } = req.body;
+sendSmtpEmail.subject = `🚨 Nueva Solicitud: ${responsable} - ${proveedor}`;
+sendSmtpEmail.htmlContent = `... tu HTML ...`;
 
-    try {
-        // 1. Obtener datos del solicitante
-        const [rows] = await db.promise().query(
-            "SELECT correo, responsable, proveedor FROM solicitudes_compra WHERE id = ?", 
-            [id]
-        );
+// Usamos el formato de objeto puro para evitar errores de sintaxis en el string
+sendSmtpEmail.sender = { 
+    "name": "Simon Bolivar", // Usa el nombre exacto que aparece en tu captura de Brevo
+    "email": "notificacionesticsimonbolivar@gmail.com" 
+};
 
-        if (rows.length === 0) {
-            return res.status(404).json({ error: "No se encontró la solicitud" });
-        }
+sendSmtpEmail.to = [{ "email": "tic3@repuestossimonbolivar.com" }];
 
-        const { correo, responsable, proveedor } = rows[0];
-
-        // 2. Actualizar en la base de datos
-        await db.promise().query(
-            "UPDATE solicitudes_compra SET estado = ? WHERE id = ?", 
-            [nuevoEstado, id]
-        );
-
-        // 3. Preparar el correo
-        const mailOptions = {
-            from: '"Portal RSB" <notificacionesticsimonbolivar@gmail.com>',
-            to: correo,
-            subject: `Actualización de Solicitud: ${nuevoEstado}`,
-            html: `
-                <div style="font-family: Arial; padding: 20px; border: 1px solid #eee;">
-                    <h2 style="color: ${nuevoEstado === 'Aprobado' ? '#2ecc71' : '#e74c3c'};">
-                        Estado: ${nuevoEstado}
-                    </h2>
-                    <p>Hola <b>${responsable}</b>,</p>
-                    <p>Tu solicitud para <b>${proveedor}</b> ha sido procesada.</p>
-                    ${motivo ? `<p><b>Observaciones:</b> ${motivo}</p>` : ''}
-                </div>`
-        };
-
-        // 4. Intentar envío y capturar error específico
-        await transporter.sendMail(mailOptions);
-        console.log(`✅ Notificación enviada a: ${correo}`);
-        res.json({ success: true, message: "Estado actualizado y correo enviado" });
-
-    } catch (error) {
-        console.error("❌ ERROR CRÍTICO EN EL PROCESO:", error);
-        res.status(500).json({ error: "Error en el servidor", detalle: error.message });
-    }
+// Ejecutar envío
+apiInstance.sendTransacEmail(sendSmtpEmail).then(function(data) {
+    console.log("🚀 API de Brevo respondió éxito:", data.messageId);
+}, function(error) {
+    // ESTO ES CLAVE: Si falla, aquí veremos el porqué real
+    console.error("❌ ERROR DETALLADO DE BREVO:", error.response.body);
 });
 // B. Obtener todas las solicitudes pendientes (Para admin.html)
 
@@ -328,6 +299,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 app.listen(PORT, () => {
     console.log(` Servidor RSB corriendo en http://localhost:${PORT}`);
 });
+
 
 
 
