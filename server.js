@@ -129,7 +129,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
             </div>`;
 
         sendSmtpEmail.sender = { "name": "Sistema de Compras RSB", "email": "notificacionesticsimonbolivar@gmail.com" };
-        sendSmtpEmail.to = [{ "email": "directoradministrativo@repuestossimonbolivar.com" }];
+        sendSmtpEmail.to = [{ "email": "tic3@repuestossimonbolivar.com" }];
 
         apiInstance.sendTransacEmail(sendSmtpEmail).then(
             (data) => console.log("🚀 Correo profesional enviado:", data.messageId),
@@ -277,6 +277,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
