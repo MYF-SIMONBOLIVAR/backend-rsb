@@ -238,8 +238,6 @@ app.get('/api/stats', (req, res) => {
 
 // A. Crear nueva solicitud (Desde index.html)
 app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
-    console.log("--- 1. Petición de creación recibida ---");
-    
     const { responsable, correo, proveedor, nit, valor, medioPago, centroCostos } = req.body;
     const archivo = req.file ? req.file.filename : null;
 
@@ -251,54 +249,39 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
     db.query(sql, values, (err, result) => {
         if (err) {
-            console.error("❌ Error al guardar en MySQL:", err.sqlMessage);
-            return res.status(500).json({ error: err.sqlMessage });
+            console.error("❌ Error en MySQL:", err);
+            return res.status(500).json({ error: err.message });
         }
 
-        console.log("✅ Solicitud guardada con ID:", result.insertId);
-
-        // --- CAMBIO A API DE BREVO ---
+        // --- EL CÓDIGO DE BREVO DEBE IR AQUÍ ADENTRO ---
+        // Porque aquí es donde 'responsable' y 'proveedor' tienen valor
         const sendSmtpEmail = new Brevo.SendSmtpEmail();
-
         sendSmtpEmail.subject = `🚨 Nueva Solicitud: ${responsable} - ${proveedor}`;
         sendSmtpEmail.htmlContent = `
-            <div style="font-family: sans-serif; border-top: 5px solid #19287F; padding: 20px; color: #333;">
-                <h2 style="color: #19287F;">Nueva Solicitud Recibida</h2>
-                <p>Se ha registrado una nueva solicitud en el portal:</p>
+            <div style="font-family: sans-serif; padding: 20px;">
+                <h2>Nueva Solicitud de Compra</h2>
                 <p><b>Responsable:</b> ${responsable}</p>
                 <p><b>Proveedor:</b> ${proveedor}</p>
                 <p><b>Valor:</b> $${Number(valor).toLocaleString()}</p>
-                <p><b>Medio de Pago:</b> ${medioPago}</p>
-                <hr style="border: none; border-top: 1px solid #eee;">
-                <p>Acceda al panel administrativo para gestionarla.</p>
-                <a href="https://backend-rsb.onrender.com/admin" 
-                   style="display: inline-block; padding: 10px 20px; background-color: #19287F; color: #fff; text-decoration: none; border-radius: 5px;">
-                   Ir al Panel Admin
-                </a>
             </div>`;
 
-        // IMPORTANTE: El email del sender debe estar verificado en Brevo
-        sendSmtpEmail.sender = { "name": "Portal RSB", "email": "notificacionesticsimonbolivar@gmail.com" };
-        
-        // Destinatario
+        sendSmtpEmail.sender = { "name": "Simon Bolivar", "email": "notificacionesticsimonbolivar@gmail.com" };
         sendSmtpEmail.to = [{ "email": "tic3@repuestossimonbolivar.com" }];
 
-        // Envío mediante la API (Puerto 443, no se bloquea)
-        apiInstance.sendTransacEmail(sendSmtpEmail).then(function(data) {
-            console.log("🚀 Aviso de nueva solicitud enviado vía API.");
-        }, function(error) {
-            console.error("⚠️ Error enviando aviso vía API:", error);
-        });
+        apiInstance.sendTransacEmail(sendSmtpEmail).then(
+            (data) => console.log("🚀 Correo enviado:", data.messageId),
+            (error) => console.error("❌ Error Brevo:", error)
+        );
 
-        // Respuesta inmediata al cliente
+        // Respuesta al usuario
         res.status(200).json({ message: 'Solicitud enviada exitosamente.' });
     });
 });
-
 // 5. INICIAR SERVIDOR
 app.listen(PORT, () => {
     console.log(` Servidor RSB corriendo en http://localhost:${PORT}`);
 });
+
 
 
 
