@@ -81,20 +81,54 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
             // Notificación a TIC
             const sendSmtpEmail = new Brevo.SendSmtpEmail();
-            sendSmtpEmail.subject = `🚨 Nueva Solicitud: ${responsable} - ${proveedor}`;
-            sendSmtpEmail.htmlContent = `
-                <div style="font-family: sans-serif; padding: 20px; border-top: 5px solid #19287F;">
-                    <h2>Nueva Solicitud de Compra</h2>
-                    <p><b>Responsable:</b> ${responsable}</p>
-                    <p><b>Proveedor:</b> ${proveedor}</p>
-                    <p><b>Valor:</b> $${Number(valor).toLocaleString()}</p>
-                    <br>
-                    <a href="https://compras.repuestossimonbolivar.com/admin" style="background:#19287F; color:white; padding:10px; text-decoration:none; border-radius:5px;">GESTIONAR PANEL</a>
-                    ${archivoUrl ? `<a href="${archivoUrl}" style="background:#e2e8f0; color:#19287F; padding:10px; text-decoration:none; border-radius:5px; margin-left:10px;">VER ADJUNTO</a>` : ''}
-                </div>`;
-            
-            sendSmtpEmail.sender = { "name": "Sistema RSB", "email": "notificacionesticsimonbolivar@gmail.com" };
-            sendSmtpEmail.to = [{ "email": "tic3@repuestossimonbolivar.com" }];
+            sendSmtpEmail.subject = ` Nueva Solicitud de Compra: ${responsable} - ${proveedor}`;
+        
+        sendSmtpEmail.htmlContent = `
+            <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                <div style="background-color: #19287F; padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0; font-size: 20px; text-transform: uppercase;">Portal de Solicitud de Compras </h1>
+                </div>
+                
+                <div style="padding: 30px; line-height: 1.6;">
+                    <p style="font-size: 16px;">Cordial saludo,</p>
+                    <p>Se ha registrado una <b>nueva solicitud de compra</b> en el sistema que requiere su revisión y aprobación. A continuación, se detallan los puntos clave de la solicitud:</p>
+                    
+                    <div style="background-color: #f8fafc; border-radius: 6px; padding: 20px; margin: 20px 0; border: 1px left solid #19287F;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr>
+                                <td style="padding: 5px 0; color: #64748b; font-size: 13px; text-transform: uppercase;"><b>Responsable:</b></td>
+                                <td style="padding: 5px 0; font-size: 14px;">${responsable}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0; color: #64748b; font-size: 13px; text-transform: uppercase;"><b>Proveedor:</b></td>
+                                <td style="padding: 5px 0; font-size: 14px;">${proveedor} (NIT: ${nit})</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0; color: #64748b; font-size: 13px; text-transform: uppercase;"><b>Centro de Costos:</b></td>
+                                <td style="padding: 5px 0; font-size: 14px;">${centroCostos || 'No especificado'}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0; color: #64748b; font-size: 13px; text-transform: uppercase;"><b>Valor Total:</b></td>
+                                <td style="padding: 5px 0; font-size: 18px; color: #19287F;"><b>$${Number(valor).toLocaleString()}</b></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <p style="text-align: center; margin-top: 30px;">
+                        <a href="https://compras.repuestossimonbolivar.com/admin" 
+                           style="background-color: #19287F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 14px;">
+                           GESTIONAR SOLICITUD 
+                        </a>
+                    </p>
+                </div>
+
+                <div style="background-color: #f1f5f9; padding: 15px; text-align: center; font-size: 11px; color: #94a3b8;">
+                    Este es un mensaje automático generado por el Sistema de Gestión de Compras de <b>Repuestos Simón Bolívar</b>. Por favor no responda a este correo.
+                </div>
+            </div>`;
+
+        sendSmtpEmail.sender = { "name": "Sistema de Compras RSB", "email": "notificacionesticsimonbolivar@gmail.com" };
+        sendSmtpEmail.to = [{ "email": "tic3@repuestossimonbolivar.com" }];
 
             apiInstance.sendTransacEmail(sendSmtpEmail).catch(e => console.error("Error Brevo:", e));
 
@@ -243,6 +277,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
