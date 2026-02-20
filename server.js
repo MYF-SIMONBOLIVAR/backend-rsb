@@ -32,15 +32,16 @@ cloudinary.config({
 });
 
 // --- CONFIGURACIÓN DE ALMACENAMIENTO (MULTER + CLOUDINARY) ---
-// Actualiza tu configuración de storage así:
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'cotizaciones_rsb',
     resource_type: 'raw', 
-    // Forzamos que el acceso sea público y no requiera firma
-    access_control: [{ access_type: 'anonymous' }], 
-    public_id: (req, file) => Date.now() + '-' + file.originalname.split('.')[0],
+    // Forzamos la extensión .pdf al final del nombre
+    public_id: (req, file) => {
+        const nombreLimpio = file.originalname.split('.')[0].replace(/\s+/g, '_');
+        return `${Date.now()}-${nombreLimpio}.pdf`;
+    },
   },
 });
 
@@ -277,6 +278,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
