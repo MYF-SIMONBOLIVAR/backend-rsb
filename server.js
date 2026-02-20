@@ -239,7 +239,8 @@ app.get('/api/stats', (req, res) => {
             COUNT(CASE WHEN estado = 'Pendiente' THEN 1 END) as pendientes,
             COUNT(CASE WHEN estado = 'Aprobado' THEN 1 END) as aprobadas,
             COUNT(CASE WHEN estado = 'Rechazado' THEN 1 END) as rechazadas,
-            SUM(valor) as valorTotal
+            /* CAMBIO AQUÍ: Solo suma el valor si el estado es exactamente 'Aprobado' */
+            SUM(CASE WHEN estado = 'Aprobado' THEN valor ELSE 0 END) as valorTotal
         FROM solicitudes_compra`;
 
     db.query(sql, (err, results) => {
@@ -302,6 +303,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 app.listen(PORT, () => {
     console.log(` Servidor RSB corriendo en http://localhost:${PORT}`);
 });
+
 
 
 
