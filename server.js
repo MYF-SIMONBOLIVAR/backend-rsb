@@ -69,7 +69,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
         const sql = `INSERT INTO solicitudes_compra 
         (responsable, correo, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        VALUES (?, ?, ?, ?, ?, ?, ?,?, ?)`;
 
         const values = [responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos, archivoUrl];
 
@@ -277,6 +277,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
