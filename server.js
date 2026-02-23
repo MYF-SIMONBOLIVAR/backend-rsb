@@ -64,14 +64,14 @@ const db = mysql.createPool({
 // A. CREAR SOLICITUD
 app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
     try {
-        const { responsable, correo, proveedor, nit, valor, medioPago, centroCostos } = req.body;
+        const { responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos } = req.body;
         const archivoUrl = req.file ? req.file.path : null;
 
         const sql = `INSERT INTO solicitudes_compra 
-        (responsable, correo, proveedor, nit, valor, medio_pago, centro_costos, archivo_cotizacion) 
+        (responsable, correo, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
-        const values = [responsable, correo, proveedor, nit, valor, medioPago, centroCostos, archivoUrl];
+        const values = [responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos, archivoUrl];
 
         db.query(sql, values, (err, result) => {
             if (err) {
@@ -277,6 +277,7 @@ app.get('/api/stats', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor RSB activo en puerto ${PORT}`);
 });
+
 
 
 
