@@ -48,14 +48,14 @@ const upload = multer({
 });
 
 // --- CONEXIÓN A BASE DE DATOS ---
-const db = mysql.createConnection({
+const dbConfig = {
     host: '193.203.175.239',
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: 3306,
-    connectTimeout: 30000 // 30 segundos
-});
+    connectTimeout: 5000 // Solo 5 segundos de espera
+};
 
 // --- 1. CREAR SOLICITUD (POST) ---
 app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
@@ -115,15 +115,17 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
 // --- 2. LISTADO CON FILTROS (GET) ---
 app.get('/api/solicitudes', (req, res) => {
-    // Intentamos conectar CADA VEZ que alguien pide la API para probar
-    db.connect((err) => {
+    const connection = mysql.createConnection(dbConfig);
+
+    connection.connect((err) => {
         if (err) {
-            console.error("Error conectando:", err.code);
-            return res.status(500).json({ error: "Fallo de conexión", detalle: err.code });
+            console.error("Error de red Hostinger:", err.code);
+            return res.status(500).json({ error: "Servidor Hostinger no responde", detalle: err.code });
         }
-        
-        db.query("SELECT * FROM solicitudes_compra ORDER BY id DESC", (queryErr, results) => {
-            if (queryErr) return res.status(500).json({ error: queryErr.sqlMessage });
+
+        connection.query("SELECT * FROM solicitudes_compra ORDER BY id DESC", (qErr, results) => {
+            connection.end(); // CERRAMOS INMEDIATAMENTE
+            if (qErr) return res.status(500).json({ error: qErr.sqlMessage });
             res.json(results);
         });
     });
