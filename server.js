@@ -73,15 +73,19 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
         const values = [responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos, archivoUrl];
 
-        db.query(sql, values, (err, results) => {
+        db.query(sql, values, (err, result) => {
             if (err) {
-                console.error("❌ Error en GET /api/solicitudes:", err);
-                // Si el mensaje está vacío, enviamos el código del error
-                return res.status(500).json({ error: err.sqlMessage || err.code || "Error en la consulta SQL" });
+                console.error("Error MySQL:", err);
+                return res.status(500).json({ error: err.message });
             }
-            // IMPORTANTE: Aseguramos que siempre devuelva un Array, aunque esté vacío
-            res.json(results || []);
+            res.status(200).json({ message: 'Solicitud enviada con éxito' });
         });
+
+    } catch (error) { // <--- ESTO ES LO QUE FALTABA
+        console.error("Error crítico en el servidor:", error);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
+});
 
             // Notificación a TIC
             const sendSmtpEmail = new Brevo.SendSmtpEmail();
