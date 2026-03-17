@@ -62,7 +62,6 @@ const db = mysql.createPool({
 });
 
 // A. CREAR SOLICITUD
-// --- RUTA POST CORREGIDA (Líneas 110 a 145 aproximadamente) ---
 app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
     try {
         const { responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos } = req.body;
@@ -76,17 +75,16 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
         db.query(sql, values, (err, result) => {
             if (err) {
-                console.error("❌ Error en MySQL:", err);
+                console.error("❌ Error MySQL:", err);
                 return res.status(500).json({ error: err.message });
             }
             res.status(200).json({ message: 'Solicitud enviada con éxito' });
         }); 
-
     } catch (error) {
-        console.error("❌ Error interno:", error);
-        res.status(500).json({ error: "Error interno del servidor" });
+        console.error("❌ Error Servidor:", error);
+        res.status(500).json({ error: "Error interno" });
     }
-}); // <--- AQUÍ TERMINA LA FUNCIÓN CORRECTAMENTE
+}); // <--- ESTE ES EL FINAL CORRECTO. ASEGÚRATE QUE NO HAYA OTRA "}" ABAJO DE ESTA LÍNEA.
 
             // Notificación a TIC
             const sendSmtpEmail = new Brevo.SendSmtpEmail();
