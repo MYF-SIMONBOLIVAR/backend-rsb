@@ -49,13 +49,15 @@ const upload = multer({
 
 // --- CONEXIÓN A BASE DE DATOS ---
 const dbConfig = {
-    host: '193.203.175.239',
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: process.env.DB_PORT,
-    connectTimeout: 5000 // Solo 5 segundos de espera
+ host: '193.203.175.239',
+ user: process.env.DB_USER,
+ password: process.env.DB_PASSWORD,
+ database: process.env.DB_NAME,
+ port: Number(process.env.DB_PORT || 3306),
+ connectTimeout: 20000,
+ enableKeepAlive: true
 };
+
 
 // --- 1. CREAR SOLICITUD (POST) ---
 app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
