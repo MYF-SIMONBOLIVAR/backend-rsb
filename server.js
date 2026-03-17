@@ -118,15 +118,24 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
 // --- 2. LISTADO CON FILTROS (GET) ---
 app.get('/api/solicitudes', (req, res) => {
-    // Sin filtros, solo para ver si hay conexión
-    db.query("SELECT * FROM solicitudes_compra LIMIT 10", (err, results) => {
+    db.query("SELECT 1", (err, results) => { // Prueba mínima de conexión
         if (err) {
-            console.error("ERROR DB:", err);
-            return res.status(500).json({ error: err.sqlMessage || "Sin conexión" });
+            console.error("DETALLE TÉCNICO:", err);
+            // Esto nos dirá si es 'Access Denied', 'Timeout', etc.
+            return res.status(500).json({ 
+                mensaje: "Fallo de conexión",
+                codigo: err.code,
+                error_detallado: err.sqlMessage 
+            });
         }
-        res.json(results);
+        
+        // Si la prueba de arriba funciona, entonces buscamos los datos
+        db.query("SELECT * FROM solicitudes_compra ORDER BY id DESC LIMIT 20", (errData, resultsData) => {
+            if (errData) return res.status(500).json({ error: errData.sqlMessage });
+            res.json(resultsData);
+        });
     });
-});;
+});
 
 // --- 3. ACTUALIZAR ESTADO (PUT) ---
 app.put('/api/solicitudes/:id', async (req, res) => {
