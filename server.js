@@ -49,14 +49,14 @@ const upload = multer({
 
 // --- CONEXIÓN A BASE DE DATOS ---
 const db = mysql.createPool({
-    host: '193.203.175.239', // IP Directa de Hostinger
+    host: '193.203.175.239', 
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: 3306,
     waitForConnections: true,
-    connectionLimit: 3,
-    connectTimeout: 30000, // 30 segundos
+    connectionLimit: 2, // Bajamos a 2 para que Hostinger no se sature
+    connectTimeout: 30000,
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000
 });
@@ -119,21 +119,20 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
 // --- 2. LISTADO CON FILTROS (GET) ---
 app.get('/api/solicitudes', (req, res) => {
-    db.query("SELECT 1", (err, results) => { // Prueba mínima de conexión
+    // Intento de ping a la base de datos
+    db.getConnection((err, connection) => {
         if (err) {
-            console.error("DETALLE TÉCNICO:", err);
-            // Esto nos dirá si es 'Access Denied', 'Timeout', etc.
             return res.status(500).json({ 
-                mensaje: "Fallo de conexión",
-                codigo: err.code,
-                error_detallado: err.sqlMessage 
+                mensaje: "El servidor de Hostinger sigue rechazando a Render", 
+                codigo: err.code 
             });
         }
         
-        // Si la prueba de arriba funciona, entonces buscamos los datos
-        db.query("SELECT * FROM solicitudes_compra ORDER BY id DESC LIMIT 20", (errData, resultsData) => {
-            if (errData) return res.status(500).json({ error: errData.sqlMessage });
-            res.json(resultsData);
+        // Si logra conectar, entonces pedimos los datos
+        connection.query("SELECT * FROM solicitudes_compra ORDER BY id DESC", (queryErr, results) => {
+            connection.release(); // Siempre liberar la conexión
+            if (queryErr) return res.status(500).json({ error: queryErr.sqlMessage });
+            res.json(results);
         });
     });
 });
