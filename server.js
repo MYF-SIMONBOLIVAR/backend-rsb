@@ -54,8 +54,7 @@ const db = mysql.createPool({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: 3306,
-    waitForConnections: true,
-    connectionLimit: 10
+    connectTimeout: 20000
 });
 
 // A. CREAR SOLICITUD
