@@ -119,21 +119,15 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
 // --- 2. LISTADO CON FILTROS (GET) ---
 app.get('/api/solicitudes', (req, res) => {
-    // Intento de ping a la base de datos
-    db.getConnection((err, connection) => {
+    db.query("SELECT * FROM solicitudes_compra ORDER BY id DESC LIMIT 50", (err, results) => {
         if (err) {
             return res.status(500).json({ 
-                mensaje: "El servidor de Hostinger sigue rechazando a Render", 
-                codigo: err.code 
+                error: "Fallo de red", 
+                mensaje: err.code,
+                sql: err.sqlMessage 
             });
         }
-        
-        // Si logra conectar, entonces pedimos los datos
-        connection.query("SELECT * FROM solicitudes_compra ORDER BY id DESC", (queryErr, results) => {
-            connection.release(); // Siempre liberar la conexión
-            if (queryErr) return res.status(500).json({ error: queryErr.sqlMessage });
-            res.json(results);
-        });
+        res.json(results);
     });
 });
 
