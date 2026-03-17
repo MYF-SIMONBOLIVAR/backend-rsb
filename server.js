@@ -49,16 +49,16 @@ const upload = multer({
 
 // --- CONEXIÓN A BASE DE DATOS ---
 const db = mysql.createPool({
-    host: '193.203.175.239',
+    host: '193.203.175.239', // IP Directa de Hostinger
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: 3306,
     waitForConnections: true,
-    connectionLimit: 3, // Menos conexiones para evitar que Hostinger sospeche de ataque
-    connectTimeout: 30000, // 30 segundos de paciencia
-    family: 4, // OBLIGATORIO: Fuerza IPv4 para saltar el firewall
-    enableKeepAlive: true
+    connectionLimit: 3,
+    connectTimeout: 30000, // 30 segundos
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000
 });
 
 // --- 1. CREAR SOLICITUD (POST) ---
