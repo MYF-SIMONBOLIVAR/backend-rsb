@@ -118,20 +118,15 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
 // --- 2. LISTADO CON FILTROS (GET) ---
 app.get('/api/solicitudes', (req, res) => {
-    // Consulta súper simple para probar la conexión
-    const sql = "SELECT * FROM solicitudes_compra ORDER BY id DESC";
-    
-    db.query(sql, (err, results) => {
+    // Sin filtros, solo para ver si hay conexión
+    db.query("SELECT * FROM solicitudes_compra LIMIT 10", (err, results) => {
         if (err) {
-            console.error("❌ ERROR REAL:", err);
-            // Esto nos dirá el error técnico real en el navegador
-            return res.status(500).json({ 
-                error: err.sqlMessage || err.code || "Error de apretón de manos (Handshake)" 
-            });
+            console.error("ERROR DB:", err);
+            return res.status(500).json({ error: err.sqlMessage || "Sin conexión" });
         }
-        res.json(results || []);
+        res.json(results);
     });
-});
+});;
 
 // --- 3. ACTUALIZAR ESTADO (PUT) ---
 app.put('/api/solicitudes/:id', async (req, res) => {
