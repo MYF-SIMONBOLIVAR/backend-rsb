@@ -49,14 +49,14 @@ const upload = multer({
 
 // --- CONEXIÓN A BASE DE DATOS ---
 const db = mysql.createPool({
-    host: '193.203.175.239',
+    host: '193.203.175.239', // IP Directa
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: 3306,
     waitForConnections: true,
-    connectionLimit: 5,
-    connectTimeout: 40000, // 40 segundos
+    connectionLimit: 2, // Bajamos el límite para no saturar
+    connectTimeout: 30000,
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000
 });
