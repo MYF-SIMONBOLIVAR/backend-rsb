@@ -56,8 +56,8 @@ const db = mysql.createPool({
     port: 3306,
     waitForConnections: true,
     connectionLimit: 5,
-    connectTimeout: 20000, // 20 segundos
-    family: 4 // Fuerza a usar IPv4 (Hostinger lo prefiere)
+    connectTimeout: 20000,
+    // Eliminamos el SSL temporalmente para probar conexión pura
 });
 
 // --- 1. CREAR SOLICITUD (POST) ---
