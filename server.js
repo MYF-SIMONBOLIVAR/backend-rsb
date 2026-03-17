@@ -48,15 +48,16 @@ const upload = multer({
 });
 
 // --- CONEXIÓN A BASE DE DATOS ---
-const pool = mysql.createPool({
- host: '193.203.175.239',
- user: process.env.DB_USER,
- password: process.env.DB_PASSWORD,
- database: process.env.DB_NAME,
- port: Number(process.env.DB_PORT || 3306),
- connectionLimit: 5,
- waitForConnections: true,
- connectTimeout: 20000
+const db = mysql.createPool({
+    host: '193.203.175.239', 
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: 3306,
+    waitForConnections: true,
+    connectionLimit: 1, // Mantenlo bajo para evitar bloqueos por "flood"
+    connectTimeout: 10000, 
+    ssl: false 
 });
 
 
@@ -164,39 +165,24 @@ app.put('/api/solicitudes/:id', async (req, res) => {
 
 // --- 4. ESTADÍSTICAS (GET) ---
 app.get('/api/stats', (req, res) => {
-    // Definimos la consulta
-    const sql = `
-        SELECT 
-            COUNT(CASE WHEN estado = 'Pendiente' THEN 1 END) as pendientes,
-            COUNT(CASE WHEN estado = 'Aprobado' THEN 1 END) as aprobadas,
-            COUNT(CASE WHEN estado = 'Rechazado' THEN 1 END) as rechazadas,
-            SUM(CASE WHEN estado = 'Aprobado' THEN valor ELSE 0 END) as valorTotal,
-            SUM(CASE WHEN estado = 'Pendiente' THEN valor ELSE 0 END) as valorPendiente
+    const sql = `SELECT 
+        COUNT(CASE WHEN estado = 'Pendiente' THEN 1 END) as pendientes,
+        COUNT(CASE WHEN estado = 'Aprobado' THEN 1 END) as aprobadas,
+        COUNT(CASE WHEN estado = 'Rechazado' THEN 1 END) as rechazadas,
+        SUM(CASE WHEN estado = 'Aprobado' THEN valor ELSE 0 END) as valorTotal
         FROM solicitudes_compra`;
 
-    // Intentamos la consulta con un manejo de error robusto
-    db.query({ sql, timeout: 5000 }, (err, results) => {
+    db.query(sql, (err, results) => {
         if (err) {
-            console.error("❌ Error en Stats:", err.code);
-            
-            // SIEMPRE respondemos JSON, incluso en error
-            return res.status(500).json({ 
-                error: 'Error de base de datos', 
+            console.error("Detalle del error:", err.code);
+            // Esto evita que Render mande el HTML de error 500
+            return res.status(200).json({ 
+                error: true, 
                 detalle: err.code,
-                mensaje: 'Hostinger no respondió a tiempo' 
+                pendientes: 0, aprobadas: 0, rechazadas: 0, valorTotal: 0 
             });
         }
-
-        // Si la tabla está vacía, enviamos ceros para que el frontend no falle
-        const stats = results[0] || {
-            pendientes: 0,
-            aprobadas: 0,
-            rechazadas: 0,
-            valorTotal: 0,
-            valorPendiente: 0
-        };
-
-        res.json(stats);
+        res.json(results[0]);
     });
 });
 
