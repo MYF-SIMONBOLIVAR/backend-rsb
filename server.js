@@ -9,10 +9,6 @@ const Brevo = require('@getbrevo/brevo');
 const cloudinary = require('cloudinary').v2;			
 const { CloudinaryStorage } = require('multer-storage-cloudinary');			
 
-const fs = require('fs');
-const Brevo = require('@getbrevo/brevo');
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
