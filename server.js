@@ -12,6 +12,12 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const axios = require('axios'); // Asegúrate de tener axios o usa fetch
+
+// Al arrancar, el servidor nos dirá su IP en los logs
+axios.get('https://api.ipify.org?format=json')
+    .then(res => console.log("📢 LA IP DE ESTE SERVIDOR ES:", res.data.ip))
+    .catch(err => console.error("No se pudo obtener la IP de salida"));
 
 // --- CONFIGURACIÓN DE BREVO API ---
 let apiInstance = new Brevo.TransactionalEmailsApi();
