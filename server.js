@@ -55,9 +55,10 @@ const db = mysql.createPool({
     database: process.env.DB_NAME,
     port: 3306,
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: 5, // Bajamos el límite para no saturar Hostinger
     queueLimit: 0,
-    connectTimeout: 10000
+    connectTimeout: 20000, // Le damos 20 segundos para conectar
+    ssl: { rejectUnauthorized: false } // A veces Render exige SSL para salir a internet
 });
 
 // --- 1. CREAR SOLICITUD (POST) ---
@@ -118,31 +119,17 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
 // --- 2. LISTADO CON FILTROS (GET) ---
 app.get('/api/solicitudes', (req, res) => {
-    const { inicio, fin, medio, proveedor, estado } = req.query;
-    let sql = "SELECT * FROM solicitudes_compra WHERE 1=1";
-    const values = [];
-
-    if (inicio && fin) {
-        sql += " AND fecha_creacion BETWEEN ? AND ?";
-        values.push(`${inicio} 00:00:00`, `${fin} 23:59:59`);
-    }
-    if (medio) { sql += " AND medio_pago = ?"; values.push(medio); }
-    if (proveedor) {
-        sql += " AND (proveedor LIKE ? OR responsable LIKE ?)";
-        values.push(`%${proveedor}%`, `%${proveedor}%`);
-    }
-    if (estado) { sql += " AND estado = ?"; values.push(estado); }
-
-    sql += " ORDER BY FIELD(estado, 'Pendiente', 'Aprobado', 'Rechazado'), fecha_creacion DESC";
-
-    db.query(sql, values, (err, results) => {
+    // Consulta súper simple para probar la conexión
+    const sql = "SELECT * FROM solicitudes_compra ORDER BY id DESC";
+    
+    db.query(sql, (err, results) => {
         if (err) {
-            console.error("❌ ERROR SQL DETECTADO:", err);
-            // IMPORTANTE: Si el error.message está vacío, enviamos el sqlMessage
-            return res.status(500).json({ error: err.sqlMessage || err.message || "Error desconocido en la base de datos" });
+            console.error("❌ ERROR REAL:", err);
+            // Esto nos dirá el error técnico real en el navegador
+            return res.status(500).json({ 
+                error: err.sqlMessage || err.code || "Error de apretón de manos (Handshake)" 
+            });
         }
-        
-        // Si no hay errores pero no hay datos, results será un array vacío []
         res.json(results || []);
     });
 });
