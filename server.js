@@ -49,19 +49,15 @@ const upload = multer({
 
 // --- CONEXIÓN A BASE DE DATOS ---
 const db = mysql.createPool({
-    host: '193.203.175.239', // Usamos la IP directamente aquí para descartar fallos de variables
+    host: '193.203.175.239', 
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: 3306,
     waitForConnections: true,
     connectionLimit: 5,
-    connectTimeout: 20000,
-    acquireTimeout: 20000,
-    // Forzamos a que use IPv4 y configuramos el SSL de forma compatible
-    ssl: {
-        rejectUnauthorized: false
-    }
+    connectTimeout: 20000, // 20 segundos
+    family: 4 // Fuerza a usar IPv4 (Hostinger lo prefiere)
 });
 
 // --- 1. CREAR SOLICITUD (POST) ---
