@@ -48,15 +48,16 @@ const upload = multer({
 });
 
 // --- CONEXIÓN A BASE DE DATOS ---
-const dbConfig = {
+const pool = mysql.createPool({
  host: '193.203.175.239',
  user: process.env.DB_USER,
  password: process.env.DB_PASSWORD,
  database: process.env.DB_NAME,
  port: Number(process.env.DB_PORT || 3306),
- connectTimeout: 20000,
- enableKeepAlive: true
-};
+ connectionLimit: 5,
+ waitForConnections: true,
+ connectTimeout: 20000
+});
 
 
 // --- 1. CREAR SOLICITUD (POST) ---
@@ -117,20 +118,10 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
 // --- 2. LISTADO CON FILTROS (GET) ---
 app.get('/api/solicitudes', (req, res) => {
-    const connection = mysql.createConnection(dbConfig);
-
-    connection.connect((err) => {
-        if (err) {
-            console.error("Error de red Hostinger:", err.code);
-            return res.status(500).json({ error: "Servidor Hostinger no responde", detalle: err.code });
-        }
-
-        connection.query("SELECT * FROM solicitudes_compra ORDER BY id DESC", (qErr, results) => {
-            connection.end(); // CERRAMOS INMEDIATAMENTE
-            if (qErr) return res.status(500).json({ error: qErr.sqlMessage });
-            res.json(results);
-        });
-    });
+ pool.query("SELECT * FROM solicitudes_compra ORDER BY id DESC", (err, results) => {
+ if (err) return res.status(500).json({ error: "DB error", detalle: err.code || err.message });
+ res.json(results);
+ });
 });
 
 // --- 3. ACTUALIZAR ESTADO (PUT) ---
