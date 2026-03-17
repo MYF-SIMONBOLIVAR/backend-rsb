@@ -164,6 +164,7 @@ app.put('/api/solicitudes/:id', async (req, res) => {
 
 // --- 4. ESTADÍSTICAS (GET) ---
 app.get('/api/stats', (req, res) => {
+    // Definimos la consulta
     const sql = `
         SELECT 
             COUNT(CASE WHEN estado = 'Pendiente' THEN 1 END) as pendientes,
@@ -172,9 +173,30 @@ app.get('/api/stats', (req, res) => {
             SUM(CASE WHEN estado = 'Aprobado' THEN valor ELSE 0 END) as valorTotal,
             SUM(CASE WHEN estado = 'Pendiente' THEN valor ELSE 0 END) as valorPendiente
         FROM solicitudes_compra`;
-    db.query(sql, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(results[0]);
+
+    // Intentamos la consulta con un manejo de error robusto
+    db.query({ sql, timeout: 5000 }, (err, results) => {
+        if (err) {
+            console.error("❌ Error en Stats:", err.code);
+            
+            // SIEMPRE respondemos JSON, incluso en error
+            return res.status(500).json({ 
+                error: 'Error de base de datos', 
+                detalle: err.code,
+                mensaje: 'Hostinger no respondió a tiempo' 
+            });
+        }
+
+        // Si la tabla está vacía, enviamos ceros para que el frontend no falle
+        const stats = results[0] || {
+            pendientes: 0,
+            aprobadas: 0,
+            rechazadas: 0,
+            valorTotal: 0,
+            valorPendiente: 0
+        };
+
+        res.json(stats);
     });
 });
 
