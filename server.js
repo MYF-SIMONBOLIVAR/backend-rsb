@@ -48,17 +48,13 @@ const upload = multer({
 });
 
 // --- CONEXIÓN A BASE DE DATOS ---
-const db = mysql.createPool({
-    host: '193.203.175.239', // IP Directa
+const db = mysql.createConnection({
+    host: '193.203.175.239',
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: 3306,
-    waitForConnections: true,
-    connectionLimit: 2, // Bajamos el límite para no saturar
-    connectTimeout: 30000,
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 10000
+    connectTimeout: 30000 // 30 segundos
 });
 
 // --- 1. CREAR SOLICITUD (POST) ---
@@ -119,15 +115,17 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
 // --- 2. LISTADO CON FILTROS (GET) ---
 app.get('/api/solicitudes', (req, res) => {
-    db.query("SELECT * FROM solicitudes_compra ORDER BY id DESC LIMIT 50", (err, results) => {
+    // Intentamos conectar CADA VEZ que alguien pide la API para probar
+    db.connect((err) => {
         if (err) {
-            return res.status(500).json({ 
-                error: "Fallo de red", 
-                mensaje: err.code,
-                sql: err.sqlMessage 
-            });
+            console.error("Error conectando:", err.code);
+            return res.status(500).json({ error: "Fallo de conexión", detalle: err.code });
         }
-        res.json(results);
+        
+        db.query("SELECT * FROM solicitudes_compra ORDER BY id DESC", (queryErr, results) => {
+            if (queryErr) return res.status(500).json({ error: queryErr.sqlMessage });
+            res.json(results);
+        });
     });
 });
 
