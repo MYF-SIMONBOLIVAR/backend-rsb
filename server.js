@@ -75,17 +75,17 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
         db.query(sql, values, (err, result) => {
             if (err) {
-                console.error("Error MySQL:", err);
+                console.error("❌ Error en MySQL:", err);
                 return res.status(500).json({ error: err.message });
             }
             res.status(200).json({ message: 'Solicitud enviada con éxito' });
-        });
+        }); // Cierra db.query
 
-    } catch (error) { // <--- ESTO ES LO QUE FALTABA
-        console.error("Error crítico en el servidor:", error);
+    } catch (error) {
+        console.error("❌ Error interno:", error);
         res.status(500).json({ error: "Error interno del servidor" });
-    }
-});
+    } // Cierra catch
+}); // Cierra app.post
 
             // Notificación a TIC
             const sendSmtpEmail = new Brevo.SendSmtpEmail();
