@@ -55,11 +55,10 @@ const db = mysql.createPool({
     database: process.env.DB_NAME,
     port: 3306,
     waitForConnections: true,
-    connectionLimit: 1, // Una sola conexión para no alertar al firewall
-    connectTimeout: 60000, // 60 segundos de espera
-    idleTimeout: 60000, 
+    connectionLimit: 5,
+    connectTimeout: 40000, // 40 segundos
     enableKeepAlive: true,
-    keepAliveInitialDelay: 0
+    keepAliveInitialDelay: 10000
 });
 
 // --- 1. CREAR SOLICITUD (POST) ---
