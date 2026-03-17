@@ -55,10 +55,11 @@ const db = mysql.createPool({
     database: process.env.DB_NAME,
     port: 3306,
     waitForConnections: true,
-    connectionLimit: 5, // Bajamos el límite para no saturar Hostinger
+    connectionLimit: 5,
     queueLimit: 0,
-    connectTimeout: 20000, // Le damos 20 segundos para conectar
-    ssl: { rejectUnauthorized: false } // A veces Render exige SSL para salir a internet
+    connectTimeout: 30000, // Subimos a 30 segundos
+    acquireTimeout: 30000,
+    ssl: { rejectUnauthorized: false } // Crucial para conexiones entre nubes
 });
 
 // --- 1. CREAR SOLICITUD (POST) ---
