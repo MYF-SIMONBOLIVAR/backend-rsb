@@ -55,7 +55,9 @@ const db = mysql.createPool({
     database: process.env.DB_NAME,
     port: 3306,
     waitForConnections: true,
-    connectionLimit: 10
+    connectionLimit: 10,
+    queueLimit: 0,
+    connectTimeout: 10000
 });
 
 // --- 1. CREAR SOLICITUD (POST) ---
@@ -134,8 +136,14 @@ app.get('/api/solicitudes', (req, res) => {
     sql += " ORDER BY FIELD(estado, 'Pendiente', 'Aprobado', 'Rechazado'), fecha_creacion DESC";
 
     db.query(sql, values, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(results);
+        if (err) {
+            console.error("❌ ERROR SQL DETECTADO:", err);
+            // IMPORTANTE: Si el error.message está vacío, enviamos el sqlMessage
+            return res.status(500).json({ error: err.sqlMessage || err.message || "Error desconocido en la base de datos" });
+        }
+        
+        // Si no hay errores pero no hay datos, results será un array vacío []
+        res.json(results || []);
     });
 });
 
