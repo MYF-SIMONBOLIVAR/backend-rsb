@@ -119,10 +119,24 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 
 // --- 2. LISTADO CON FILTROS (GET) ---
 app.get('/api/solicitudes', (req, res) => {
- pool.query("SELECT * FROM solicitudes_compra ORDER BY id DESC", (err, results) => {
- if (err) return res.status(500).json({ error: "DB error", detalle: err.code || err.message });
- res.json(results);
- });
+    // Definimos la consulta (asegúrate que los nombres de columnas coincidan con el DESCRIBE que hiciste)
+    const sql = "SELECT * FROM solicitudes_compra ORDER BY id DESC";
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            // Este log aparecerá en el dashboard de Render -> Logs
+            console.error("❌ ERROR EN BASE DE DATOS:", err.code, err.message);
+
+            // Respondemos con JSON, NUNCA con el error crudo para evitar el HTML
+            return res.status(500).json({ 
+                error: "Error de conexión con la base de datos", 
+                detalle: err.code 
+            });
+        }
+
+        // Si todo sale bien, enviamos los datos
+        res.json(results);
+    });
 });
 
 // --- 3. ACTUALIZAR ESTADO (PUT) ---
