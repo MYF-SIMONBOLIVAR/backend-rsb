@@ -55,12 +55,10 @@ const db = mysql.createPool({
     database: process.env.DB_NAME,
     port: 3306,
     waitForConnections: true,
-    connectionLimit: 3,
-    connectTimeout: 30000, // Le damos 30 segundos
-    // ESTO ES LO MÁS IMPORTANTE PARA HOSTINGER:
-    family: 4, // Fuerza a usar IPv4
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 10000
+    connectionLimit: 3, // Menos conexiones para evitar que Hostinger sospeche de ataque
+    connectTimeout: 30000, // 30 segundos de paciencia
+    family: 4, // OBLIGATORIO: Fuerza IPv4 para saltar el firewall
+    enableKeepAlive: true
 });
 
 // --- 1. CREAR SOLICITUD (POST) ---
