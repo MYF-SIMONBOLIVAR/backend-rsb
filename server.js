@@ -55,12 +55,12 @@ const db = mysql.createPool({
     database: process.env.DB_NAME,
     port: 3306,
     waitForConnections: true,
-    connectionLimit: 1, 
-    connectTimeout: 20000,
-    // ESTO ES LO NUEVO:
+    connectionLimit: 1, // Bajamos a 1 para no saturar el firewall
+    connectTimeout: 20000, // 20 segundos de paciencia
+    // CONFIGURACIÓN CLAVE PARA HOSTINGER:
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000,
-    ssl: false // Forzamos que NO use SSL para que Hostinger no se confunda
+    ssl: false // Forzamos NO usar SSL para evitar rechazos
 });
 
 
