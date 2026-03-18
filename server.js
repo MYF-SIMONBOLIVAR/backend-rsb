@@ -140,8 +140,6 @@ app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Sistema RSB en Render activo`));
 // 2. LISTADO CON FILTROS (GET)
 app.get('/api/solicitudes', (req, res) => {
     const { inicio, fin, medio, proveedor, estado } = req.query;
