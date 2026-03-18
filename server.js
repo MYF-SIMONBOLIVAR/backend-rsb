@@ -47,7 +47,7 @@ const storage = new CloudinaryStorage({
 const upload = multer({ 
     storage: storage, 
     limits: { fileSize: 5 * 1024 * 1024 } 
-});;
+});
 
 // --- CONEXIÓN A BASE DE DATOS ---
 const db = mysql.createPool({
