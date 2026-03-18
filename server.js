@@ -13,19 +13,20 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Conexión a la DB de Render
+// Conexión a la DB de Render (PostgreSQL)
 const db = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 
-// --- FUNCIÓN PARA CREAR LA TABLA AUTOMÁTICAMENTE ---
-const crearTablaSiNoExiste = async () => {
-    const querySQL = `
+// Función para crear la tabla si no existe
+const iniciarTabla = async () => {
+    const sql = `
         CREATE TABLE IF NOT EXISTS solicitudes_compra (
             id SERIAL PRIMARY KEY,
             responsable VARCHAR(100),
@@ -42,21 +43,21 @@ const crearTablaSiNoExiste = async () => {
         );
     `;
     try {
-        await db.query(querySQL);
-        console.log("✅ Tabla verificada/creada correctamente en Render");
+        await db.query(sql);
+        console.log("✅ Tabla solicitudes_compra lista en Render");
     } catch (err) {
-        console.error("❌ Error al crear la tabla:", err.message);
+        console.error("❌ Error al inicializar tabla:", err.message);
     }
 };
 
-crearTablaSiNoExiste();
+iniciarTabla();
 
-// --- RUTA POST (Sincronizada para Postgres) ---
+// --- RUTA POST PARA SOLICITUDES ---
 app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
     try {
         const { responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos } = req.body;
         const archivoNombre = req.file ? `Adjunto: ${req.file.originalname}` : 'Sin archivo';
-        const valorNumerico = valor ? String(valor).replace(/[^0-9.]/g, '') : 0;
+        const valorLimpio = valor ? String(valor).replace(/[^0-9.]/g, '') : 0;
 
         const sql = `INSERT INTO solicitudes_compra 
             (responsable, correo, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion, estado) 
@@ -67,7 +68,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
             correo || null,
             proveedor || 'N/A',
             nit || '0',
-            valorNumerico,
+            valorLimpio,
             descripcion || '',
             medioPago || 'No especificado',
             centroCostos || 'General',
@@ -75,12 +76,12 @@ app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
         ];
 
         const result = await db.query(sql, values);
-        console.log("✅ Guardado en Render DB ID:", result.rows[0].id);
+        console.log("✅ Registro guardado con ID:", result.rows[0].id);
 
         res.status(200).json({ success: true, id: result.rows[0].id });
 
     } catch (error) {
-        console.error("❌ ERROR DB RENDER:", error.message);
+        console.error("❌ Error en el proceso:", error.message);
         res.status(500).json({ error: error.message });
     }
 });
