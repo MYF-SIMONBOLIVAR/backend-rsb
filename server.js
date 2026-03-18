@@ -68,15 +68,24 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
         const archivoUrl = req.file ? req.file.path : null;
 
         const sql = `INSERT INTO solicitudes_compra 
-        (responsable, correo, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        (responsable, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion, estado) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente')`;
 
-        const values = [responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos, archivoUrl];
+        const values = [
+            responsable, 
+            proveedor, 
+            nit, 
+            valor, 
+            descripcion || '', 
+            medioPago || 'No especificado', 
+            centroCostos || 'General', 
+            archivoUrl
+        ];
 
         db.query(sql, values, (err, result) => {
             if (err) {
                 console.error("❌ Error MySQL:", err.message);
-                return res.status(500).json({ error: "Error en base de datos" });
+                return res.status(500).json({ error: "Error en base de datos", detalle: err.message });
             }
 
             // Notificación a TIC
