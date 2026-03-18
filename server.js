@@ -63,45 +63,48 @@ const db = mysql.createPool({
 
 // A. CREAR SOLICITUD
 app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
-    try {
-        // 1. Extraemos los datos del formulario (Asegúrate que coincidan con los 'name' del HTML)
-        const { responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos } = req.body;
-        
-        // 2. Manejo del archivo (Si usas Render local, es path; si usas Cloudinary, también)
-        const archivoUrl = req.file ? req.file.path : null;
+    // LOG DE SEGURIDAD: Ver qué llega al servidor
+    console.log("📥 Datos recibidos:", req.body);
 
-        const valorLimpio = valor ? valor.replace(/[^0-9]/g, '') : 0;
+    const { responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos } = req.body;
+    const archivoUrl = req.file ? "Archivo recibido" : "Sin archivo";
+    
+    // Limpiamos el valor para que sea solo números (Evita error de decimal)
+    const valorNumerico = valor ? String(valor).replace(/[^0-9.]/g, '') : 0;
 
-        // 3. SQL SINCRONIZADO CON TU 'DESCRIBE'
-        const sql = `INSERT INTO solicitudes_compra 
-            (responsable, correo, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion, estado) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente')`;
+    const sql = `INSERT INTO solicitudes_compra 
+        (responsable, correo, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion, estado) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente')`;
 
-        // 4. MAPE DE VALORES (Aquí corregimos CamelCase a Snake_Case de la BD)
-       const values = [
-            responsable || 'Sin nombre',
-            correo || null,
-            proveedor || 'Sin proveedor',
-            nit || '',
-            valorLimpio,
-            descripcion || '',
-            medioPago || 'No especificado', // Mapeo: medioPago -> medio_pago
-            centroCostos || 'General',       // Mapeo: centroCostos -> centro_costos
-            archivoUrl
-        ];
+    const values = [
+        responsable || 'Anónimo',
+        correo || null,
+        proveedor || 'N/A',
+        nit || '0',
+        valorNumerico,
+        descripcion || '',
+        medioPago || 'Efectivo',
+        centroCostos || 'General',
+        archivoUrl
+    ];
 
-       b.query(sql, values, (err, result) => {
-            if (err) {
-                // ESTO ES LO QUE DEBES MIRAR EN LOS LOGS DE RENDER SI FALLA
-                console.error("❌ ERROR EN BASE DE DATOS:", err.message);
-                return res.status(500).json({ 
-                    error: "Error al guardar", 
-                    detalle: err.message,
-                    codigo: err.code 
-                });
-            }
+    db.query(sql, values, (err, result) => {
+        if (err) {
+            // 🚨 ESTO ES LO MÁS IMPORTANTE:
+            console.error("❌ ERROR DETECTADO:", err.message);
+            
+            // Enviamos el error real al frontend para que lo veas en la consola (F12)
+            return res.status(500).json({ 
+                error: "Error en Base de Datos", 
+                mensaje_real: err.message,
+                sql_code: err.code 
+            });
+        }
 
-            console.log("✅ Solicitud guardada con éxito. ID:", result.insertId);
+        console.log("✅ Insertado con éxito ID:", result.insertId);
+        res.status(200).json({ success: true, id: result.insertId });
+    });
+});
 
             // Notificación a TIC
             const sendSmtpEmail = new Brevo.SendSmtpEmail();
