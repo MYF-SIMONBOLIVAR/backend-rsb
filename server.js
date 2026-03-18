@@ -16,9 +16,9 @@ app.use(express.json());
 
 // 1. Configuración de Cloudinary (Asegúrate de tener estas variables en Render)
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+  cloud_name: process.env.NAME,
+  api_key: process.env.KEY,
+  api_secret: process.env.SECRET
 });
 
 // 2. Configuración de Multer con Cloudinary (Para que los PDF se guarden de verdad)
