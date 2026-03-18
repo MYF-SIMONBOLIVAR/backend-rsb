@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 
 // --- MIDDLEWARES ---
 app.use(cors({
-    origin: '*', 
+    origin: 'https://compras.repuestossimonbolivar.com', 
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type']
 }));
