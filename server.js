@@ -203,28 +203,34 @@ app.put('/api/solicitudes/:id', async (req, res) => {
 
     try {
         // A. Buscar los datos en PostgreSQL (usando $1)
+        // Nota: Postgres devuelve los nombres de columnas en minúsculas
         const result = await db.query(
             "SELECT correo, responsable, proveedor, valor FROM solicitudes_compra WHERE id = $1", 
             [id]
         );
 
         if (result.rows.length === 0) {
+            console.error(`❌ No se encontró la solicitud con ID: ${id}`);
             return res.status(404).json({ error: "No se encontró la solicitud" });
         }
 
         const { correo, responsable, proveedor, valor } = result.rows[0];
 
-        // B. Actualizar el estado
+        // B. Actualizar el estado en la base de datos
         await db.query(
             "UPDATE solicitudes_compra SET estado = $1 WHERE id = $2", 
             [estado, id]
         );
 
-        // C. Configuración de Correo
+        console.log(`✅ Base de datos actualizada: ID ${id} ahora es ${estado}`);
+
+        // C. Configuración de Correo (Diseño mejorado)
         const colorEstado = estado === 'Aprobado' ? '#2ecc71' : '#e74c3c';
         const icono = estado === 'Aprobado' ? '✅' : '❌';
 
+        const apiInstance = new Brevo.TransactionalEmailsApi(); // Asegúrate de que apiInstance esté definido
         const sendSmtpEmail = new Brevo.SendSmtpEmail();
+        
         sendSmtpEmail.subject = `${icono} Notificación de Solicitud: ${estado}`;
         sendSmtpEmail.htmlContent = `
             <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
@@ -261,13 +267,17 @@ app.put('/api/solicitudes/:id', async (req, res) => {
         sendSmtpEmail.sender = { "name": "Sistema de Compras RSB", "email": "notificacionesticsimonbolivar@gmail.com" };
         sendSmtpEmail.to = [{ "email": correo }];
 
-        apiInstance.sendTransacEmail(sendSmtpEmail).catch(e => console.error("Error Brevo:", e));
+        // D. Envío asíncrono del correo
+        apiInstance.sendTransacEmail(sendSmtpEmail)
+            .then(() => console.log(`📧 Correo enviado a ${correo}`))
+            .catch(e => console.error("❌ Error Brevo:", e));
 
+        // Respuesta final exitosa
         res.json({ success: true, message: `Solicitud ${estado} correctamente.` });
 
     } catch (error) {
         console.error("❌ Error en PUT:", error.message);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error interno al actualizar la solicitud." });
     }
 });
 
