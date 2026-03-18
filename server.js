@@ -75,10 +75,10 @@ app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
         const archivoNombre = req.file ? `Adjunto: ${req.file.originalname}` : 'Sin archivo';
         const valorLimpio = valor ? String(valor).replace(/[^0-9.]/g, '') : '0';
 
-        // 2. SQL para PostgreSQL (Render)
+        // 2. SQL corregido (10 columnas -> 10 valores incluyendo el texto fijo)
         const sql = `INSERT INTO solicitudes_compra 
             (responsable, correo, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion, estado) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Pendiente') RETURNING id`;
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`;
 
         const values = [
             responsable || 'Anónimo',
@@ -89,7 +89,8 @@ app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
             descripcion || '',
             medioPago || 'No especificado',
             centroCostos || 'General',
-            archivoNombre
+            archivoNombre,
+            'Pendiente' // Este es el $10
         ];
 
         // 3. Ejecución en Base de Datos
@@ -97,39 +98,8 @@ app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
         const nuevoId = result.rows[0].id;
         console.log("✅ Registro guardado en Render DB ID:", nuevoId);
 
-        // 4. Configuración y Envío de Correo (Brevo)
-        try {
-            const sendSmtpEmail = new Brevo.SendSmtpEmail();
-            sendSmtpEmail.subject = `Nueva Solicitud de Compra: ${responsable} - ${proveedor}`;
-            sendSmtpEmail.htmlContent = `
-                <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-                    <div style="background-color: #19287F; padding: 20px; text-align: center;">
-                        <h1 style="color: white; margin: 0; font-size: 20px; text-transform: uppercase;">Portal de Solicitud de Compras</h1>
-                    </div>
-                    <div style="padding: 30px; line-height: 1.6;">
-                        <p style="font-size: 16px;">Cordial saludo,</p>
-                        <p>Se ha registrado una <b>nueva solicitud de compra</b> en el sistema.</p>
-                        <div style="background-color: #f8fafc; border-radius: 6px; padding: 20px; margin: 20px 0; border-left: 4px solid #19287F;">
-                            <table style="width: 100%; border-collapse: collapse;">
-                                <tr><td style="padding: 5px 0;"><b>Responsable:</b></td><td>${responsable}</td></tr>
-                                <tr><td style="padding: 5px 0;"><b>Proveedor:</b></td><td>${proveedor} (NIT: ${nit})</td></tr>
-                                <tr><td style="padding: 5px 0;"><b>Centro de Costos:</b></td><td>${centroCostos || 'No especificado'}</td></tr>
-                                <tr><td style="padding: 5px 0;"><b>Valor Total:</b></td><td style="font-size: 18px; color: #19287F;"><b>$${Number(valorLimpio).toLocaleString()}</b></td></tr>
-                            </table>
-                        </div>
-                        <p style="text-align: center; margin-top: 30px;">
-                            <a href="https://compras.repuestossimonbolivar.com/admin" style="background-color: #19287F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">GESTIONAR SOLICITUD</a>
-                        </p>
-                    </div>
-                </div>`;
-
-            sendSmtpEmail.sender = { "name": "Sistema de Compras RSB", "email": "notificacionesticsimonbolivar@gmail.com" };
-            sendSmtpEmail.to = [{ "email": "directoradministrativo@repuestossimonbolivar.com" }];
-
-            apiInstance.sendTransacEmail(sendSmtpEmail).catch(e => console.error("Error Brevo:", e));
-        } catch (mailError) {
-            console.error("❌ Error preparando el correo:", mailError);
-        }
+        // 4. Envío de Correo (Se ejecuta en segundo plano para no retrasar la respuesta)
+        enviarNotificacionAdmin(responsable, proveedor, nit, centroCostos, valorLimpio);
 
         // 5. Respuesta Final al Frontend
         res.status(200).json({ success: true, message: 'Solicitud enviada', id: nuevoId });
@@ -139,6 +109,37 @@ app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
         res.status(500).json({ error: "Error interno del servidor", detalle: error.message });
     }
 });
+
+// Función auxiliar para limpiar el código principal
+async function enviarNotificacionAdmin(responsable, proveedor, nit, centroCostos, valorLimpio) {
+    try {
+        const sendSmtpEmail = new Brevo.SendSmtpEmail();
+        sendSmtpEmail.subject = `Nueva Solicitud de Compra: ${responsable} - ${proveedor}`;
+        sendSmtpEmail.htmlContent = `
+            <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                <div style="background-color: #19287F; padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0; font-size: 20px; text-transform: uppercase;">Nueva Solicitud RSB</h1>
+                </div>
+                <div style="padding: 30px; line-height: 1.6;">
+                    <p>Se ha registrado una nueva solicitud de compra:</p>
+                    <ul>
+                        <li><b>Responsable:</b> ${responsable}</li>
+                        <li><b>Proveedor:</b> ${proveedor}</li>
+                        <li><b>Valor:</b> $${Number(valorLimpio).toLocaleString()}</li>
+                    </ul>
+                    <a href="https://compras.repuestossimonbolivar.com/admin" style="display:inline-block; background:#19287F; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;">Gestionar en Panel</a>
+                </div>
+            </div>`;
+
+        sendSmtpEmail.sender = { "name": "Sistema de Compras RSB", "email": "notificacionesticsimonbolivar@gmail.com" };
+        sendSmtpEmail.to = [{ "email": "directoradministrativo@repuestossimonbolivar.com" }];
+
+        await apiInstance.sendTransacEmail(sendSmtpEmail);
+        console.log("📧 Correo de notificación enviado al Admin");
+    } catch (e) {
+        console.error("❌ Error enviando correo al admin:", e.message);
+    }
+}
 
 // 2. LISTADO CON FILTROS (GET)
 app.get('/api/solicitudes', async (req, res) => {
