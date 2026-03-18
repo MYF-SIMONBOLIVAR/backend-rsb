@@ -64,29 +64,40 @@ const db = mysql.createPool({
 // A. CREAR SOLICITUD
 app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
     try {
+        // 1. Extraemos los datos del formulario (Asegúrate que coincidan con los 'name' del HTML)
         const { responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos } = req.body;
+        
+        // 2. Manejo del archivo (Si usas Render local, es path; si usas Cloudinary, también)
         const archivoUrl = req.file ? req.file.path : null;
 
+        // 3. SQL SINCRONIZADO CON TU 'DESCRIBE'
         const sql = `INSERT INTO solicitudes_compra 
-        (responsable, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion, estado) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente')`;
+            (responsable, correo, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion, estado) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente')`;
 
+        // 4. MAPE DE VALORES (Aquí corregimos CamelCase a Snake_Case de la BD)
         const values = [
             responsable, 
+            correo || null, 
             proveedor, 
             nit, 
             valor, 
             descripcion || '', 
-            medioPago || 'No especificado', 
-            centroCostos || 'General', 
+            medioPago || 'No especificado', // medioPago del body -> medio_pago de la BD
+            centroCostos || 'General',       // centroCostos del body -> centro_costos de la BD
             archivoUrl
         ];
 
         db.query(sql, values, (err, result) => {
             if (err) {
-                console.error("❌ Error MySQL:", err.message);
-                return res.status(500).json({ error: "Error en base de datos", detalle: err.message });
+                console.error("❌ ERROR MYSQL:", err.message);
+                return res.status(500).json({ 
+                    error: "Error al guardar en base de datos", 
+                    detalle: err.message 
+                });
             }
+
+            console.log("✅ Solicitud guardada con ID:", result.insertId);
 
             // Notificación a TIC
             const sendSmtpEmail = new Brevo.SendSmtpEmail();
