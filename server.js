@@ -139,6 +139,8 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
 // 2. LISTADO CON FILTROS (GET)
 app.get('/api/solicitudes', (req, res) => {
     const { inicio, fin, medio, proveedor, estado } = req.query;
+    
+    // 1. Construcción dinámica de la consulta
     let sql = "SELECT * FROM solicitudes_compra WHERE 1=1";
     const values = [];
 
@@ -146,18 +148,41 @@ app.get('/api/solicitudes', (req, res) => {
         sql += " AND fecha_creacion BETWEEN ? AND ?";
         values.push(`${inicio} 00:00:00`, `${fin} 23:59:59`);
     }
-    if (medio) { sql += " AND medio_pago = ?"; values.push(medio); }
-    if (proveedor) {
+    
+    if (medio && medio !== "") { 
+        sql += " AND medio_pago = ?"; 
+        values.push(medio); 
+    }
+    
+    if (proveedor && proveedor !== "") {
         sql += " AND (proveedor LIKE ? OR responsable LIKE ?)";
         values.push(`%${proveedor}%`, `%${proveedor}%`);
     }
-    if (estado) { sql += " AND estado = ?"; values.push(estado); }
+    
+    if (estado && estado !== "") { 
+        sql += " AND estado = ?"; 
+        values.push(estado); 
+    }
 
+    // Orden jerárquico: Pendientes arriba, luego Aprobadas y Rechazadas por fecha reciente
     sql += " ORDER BY FIELD(estado, 'Pendiente', 'Aprobado', 'Rechazado'), fecha_creacion DESC";
 
-    db.query(sql, values, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(results);
+    // 2. Ejecución con manejo de errores robusto
+    db.query({ sql, values, timeout: 15000 }, (err, results) => {
+        if (err) {
+            // Log para que veas el error real en el panel de Render
+            console.error("❌ ERROR CRÍTICO EN /api/solicitudes:", err.code);
+            
+            /* IMPORTANTE: Devolvemos status 500 pero con un array vacío []. 
+               Esto evita el error "datos.forEach is not a function" en el frontend 
+               porque el frontend recibirá una lista (aunque esté vacía).
+            */
+            return res.status(500).json([]); 
+        }
+
+        // 3. Respuesta exitosa
+        // Si por alguna razón no hay resultados, enviamos un array vacío por defecto
+        res.json(results || []);
     });
 });
 
