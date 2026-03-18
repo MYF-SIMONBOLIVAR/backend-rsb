@@ -67,46 +67,57 @@ const iniciarTabla = async () => {
 iniciarTabla();
 
 // --- RUTA POST PARA SOLICITUDES ---
-// --- RUTA POST PARA SOLICITUDES ---
 app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
     try {
-        // 1. Captura de datos
+        // 1. Captura de datos del formulario
         const { responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos } = req.body;
+        
+        // 2. Limpieza de valor (Para columna tipo NUMERIC)
+        const valorNumerico = parseFloat(String(valor).replace(/[^0-9.]/g, '')) || 0;
+        
+        // 3. Manejo del archivo
         const archivoNombre = req.file ? `Adjunto: ${req.file.originalname}` : 'Sin archivo';
-        const valorLimpio = valor ? String(valor).replace(/[^0-9.]/g, '') : '0';
 
-        // 2. SQL corregido (10 columnas -> 10 valores incluyendo el texto fijo)
+        // 4. SQL: 10 columnas = 10 marcadores ($1 al $10)
+        // Columnas: 1.responsable, 2.correo, 3.proveedor, 4.nit, 5.valor, 6.descripcion, 7.medio_pago, 8.centro_costos, 9.archivo_cotizacion, 10.estado
         const sql = `INSERT INTO solicitudes_compra 
             (responsable, correo, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion, estado) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`;
 
+        // 5. Array de valores en el MISMO ORDEN que el SQL
         const values = [
-            responsable || 'Anónimo',
-            correo || null,
-            proveedor || 'N/A',
-            nit || '0',
-            valorLimpio,
-            descripcion || '',
-            medioPago || 'No especificado',
-            centroCostos || 'General',
-            archivoNombre,
-            'Pendiente' // Este es el $10
+            responsable || 'Anónimo',      // $1
+            correo || null,               // $2
+            proveedor || 'N/A',            // $3
+            nit || '0',                   // $4
+            valorNumerico,                // $5 (Como número real)
+            descripcion || '',            // $6
+            medioPago || 'No especificado',// $7
+            centroCostos || 'General',     // $8
+            archivoNombre,                // $9
+            'Pendiente'                   // $10
         ];
 
-        // 3. Ejecución en Base de Datos
+        // 6. Ejecución en Render DB
         const result = await db.query(sql, values);
         const nuevoId = result.rows[0].id;
-        console.log("✅ Registro guardado en Render DB ID:", nuevoId);
 
-        // 4. Envío de Correo (Se ejecuta en segundo plano para no retrasar la respuesta)
-        enviarNotificacionAdmin(responsable, proveedor, nit, centroCostos, valorLimpio);
+        console.log("✅ Registro exitoso en Postgres. ID:", nuevoId);
 
-        // 5. Respuesta Final al Frontend
-        res.status(200).json({ success: true, message: 'Solicitud enviada', id: nuevoId });
+        // 7. Respuesta al navegador
+        res.status(200).json({ 
+            success: true, 
+            message: 'Solicitud enviada correctamente', 
+            id: nuevoId 
+        });
 
     } catch (error) {
-        console.error("❌ Error Crítico en el proceso:", error.message);
-        res.status(500).json({ error: "Error interno del servidor", detalle: error.message });
+        // Log detallado en la consola de Render para saber exactamente qué falló
+        console.error("❌ ERROR EN INSERT:", error.message);
+        res.status(500).json({ 
+            error: "Error en el servidor", 
+            detalle: error.message 
+        });
     }
 });
 
