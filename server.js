@@ -116,7 +116,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
         console.error("❌ ERROR CRÍTICO:", error);
         res.status(500).json({ error: "Fallo interno del servidor" });
     }
-});
+
 
             // Notificación a TIC
             const sendSmtpEmail = new Brevo.SendSmtpEmail();
