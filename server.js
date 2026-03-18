@@ -24,10 +24,13 @@ cloudinary.config({
 // 2. Configuración de Multer con Cloudinary (Para que los PDF se guarden de verdad)
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'cotizaciones_rsb',
-    format: async (req, file) => 'pdf', 
-    public_id: (req, file) => Date.now() + '-' + file.originalname,
+  params: async (req, file) => {
+    return {
+      folder: 'cotizaciones_rsb',
+      resource_type: 'raw', // Para que acepte PDFs correctamente
+      public_id: Date.now() + '-' + file.originalname.split('.')[0].replace(/[^a-zA-Z0-9]/g, "_"),
+      format: 'pdf',
+    };
   },
 });
 const upload = multer({ storage: storage });
