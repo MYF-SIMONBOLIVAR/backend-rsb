@@ -17,11 +17,39 @@ app.use(express.json());
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// CONEXIÓN A POSTGRES (RENDER)
+// Conexión a la DB de Render
 const db = new Pool({
-    connectionString: process.env.DATABASE_URL, // Aquí pondrás la URL de Render
+    connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
+
+// --- FUNCIÓN PARA CREAR LA TABLA AUTOMÁTICAMENTE ---
+const crearTablaSiNoExiste = async () => {
+    const querySQL = `
+        CREATE TABLE IF NOT EXISTS solicitudes_compra (
+            id SERIAL PRIMARY KEY,
+            responsable VARCHAR(100),
+            correo VARCHAR(100),
+            proveedor VARCHAR(100),
+            nit VARCHAR(20),
+            valor DECIMAL(15,2),
+            descripcion TEXT,
+            medio_pago VARCHAR(50),
+            centro_costos VARCHAR(100),
+            archivo_cotizacion VARCHAR(500),
+            estado VARCHAR(20) DEFAULT 'Pendiente',
+            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    `;
+    try {
+        await db.query(querySQL);
+        console.log("✅ Tabla verificada/creada correctamente en Render");
+    } catch (err) {
+        console.error("❌ Error al crear la tabla:", err.message);
+    }
+};
+
+crearTablaSiNoExiste();
 
 // --- RUTA POST (Sincronizada para Postgres) ---
 app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
