@@ -70,34 +70,38 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
         // 2. Manejo del archivo (Si usas Render local, es path; si usas Cloudinary, también)
         const archivoUrl = req.file ? req.file.path : null;
 
+        const valorLimpio = valor ? valor.replace(/[^0-9]/g, '') : 0;
+
         // 3. SQL SINCRONIZADO CON TU 'DESCRIBE'
         const sql = `INSERT INTO solicitudes_compra 
             (responsable, correo, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion, estado) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente')`;
 
         // 4. MAPE DE VALORES (Aquí corregimos CamelCase a Snake_Case de la BD)
-        const values = [
-            responsable, 
-            correo || null, 
-            proveedor, 
-            nit, 
-            valor, 
-            descripcion || '', 
-            medioPago || 'No especificado', // medioPago del body -> medio_pago de la BD
-            centroCostos || 'General',       // centroCostos del body -> centro_costos de la BD
+       const values = [
+            responsable || 'Sin nombre',
+            correo || null,
+            proveedor || 'Sin proveedor',
+            nit || '',
+            valorLimpio,
+            descripcion || '',
+            medioPago || 'No especificado', // Mapeo: medioPago -> medio_pago
+            centroCostos || 'General',       // Mapeo: centroCostos -> centro_costos
             archivoUrl
         ];
 
-        db.query(sql, values, (err, result) => {
+       b.query(sql, values, (err, result) => {
             if (err) {
-                console.error("❌ ERROR MYSQL:", err.message);
+                // ESTO ES LO QUE DEBES MIRAR EN LOS LOGS DE RENDER SI FALLA
+                console.error("❌ ERROR EN BASE DE DATOS:", err.message);
                 return res.status(500).json({ 
-                    error: "Error al guardar en base de datos", 
-                    detalle: err.message 
+                    error: "Error al guardar", 
+                    detalle: err.message,
+                    codigo: err.code 
                 });
             }
 
-            console.log("✅ Solicitud guardada con ID:", result.insertId);
+            console.log("✅ Solicitud guardada con éxito. ID:", result.insertId);
 
             // Notificación a TIC
             const sendSmtpEmail = new Brevo.SendSmtpEmail();
