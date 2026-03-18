@@ -1,6 +1,6 @@
 
 const express = require('express');			
-const mysql = require('mysql2');			
+const mysql = require('pg');			
 const cors = require('cors');			
 const multer = require('multer');			
 const path = require('path');			
@@ -11,72 +11,28 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+app.use(cors());
+app.use(express.json());
 
-// --- MIDDLEWARES ---
-app.use(cors({
- origin: ['https://compras.repuestossimonbolivar.com'],
- methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
- allowedHeaders: ['Content-Type', 'Authorization'],
- credentials: true,
-}));
-app.options('*', cors());
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
-
-// --- CONFIGURACIÓN DE CLOUDINARY ---
-cloudinary.config({
-  cloud_name: process.env.NAME,
-  api_key:    process.env.KEY,
-  api_secret: process.env.SECRET
+// CONEXIÓN A POSTGRES (RENDER)
+const db = new Pool({
+    connectionString: process.env.DATABASE_URL, // Aquí pondrás la URL de Render
+    ssl: { rejectUnauthorized: false }
 });
 
-// --- CONFIGURACIÓN DE ALMACENAMIENTO (MULTER + CLOUDINARY) ---
-// Actualiza tu configuración de storage así:
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'cotizaciones_rsb',
-    resource_type: 'raw', 
-    // Forzamos que el acceso sea público y no requiera firma
-    access_control: [{ access_type: 'anonymous' }], 
-    public_id: (req, file) => Date.now() + '-' + file.originalname.split('.')[0],
-  },
-});
-
-// AQUÍ CORREGIDO: Solo una declaración de 'upload'
-const upload = multer({ 
-    storage: storage, 
-    limits: { fileSize: 5 * 1024 * 1024 } 
-});
-
-// --- CONEXIÓN A BASE DE DATOS ---
-const db = mysql.createPool({
-    host: '193.203.175.239', 
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: 3306,
-    connectionLimit: 5,
-    connectTimeout: 20000, // 20 segundos de espera
-    ssl: false // Hostinger suele rechazar SSL externo
-});
-
-// A. CREAR SOLICITUD
-app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
+// --- RUTA POST (Sincronizada para Postgres) ---
+app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
     try {
-        // 1. Datos del body
         const { responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos } = req.body;
-        
-        // 2. Manejo de archivo
-        const archivoUrl = req.file ? `Archivo: ${req.file.originalname}` : 'Sin archivo';
-        
-        // 3. Limpieza de valor
+        const archivoNombre = req.file ? `Adjunto: ${req.file.originalname}` : 'Sin archivo';
         const valorNumerico = valor ? String(valor).replace(/[^0-9.]/g, '') : 0;
 
-        // 4. SQL sincronizado con la tabla
         const sql = `INSERT INTO solicitudes_compra 
             (responsable, correo, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion, estado) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente')`;
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Pendiente') RETURNING id`;
 
         const values = [
             responsable || 'Anónimo',
@@ -87,20 +43,22 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
             descripcion || '',
             medioPago || 'No especificado',
             centroCostos || 'General',
-            archivoUrl
+            archivoNombre
         ];
 
-        // 5. Ejecución en Base de Datos
-        db.query(sql, values, (err, result) => {
-            if (err) {
-                console.error("❌ ERROR MYSQL:", err.message);
-                return res.status(500).json({ 
-                    error: "Error en Base de Datos", 
-                    mensaje: err.message 
-                });
-            }
+        const result = await db.query(sql, values);
+        console.log("✅ Guardado en Render DB ID:", result.rows[0].id);
 
-            console.log("✅ Registro exitoso. ID:", result.insertId);
+        res.status(200).json({ success: true, id: result.rows[0].id });
+
+    } catch (error) {
+        console.error("❌ ERROR DB RENDER:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log(`🚀 Sistema RSB en Render activo`));
             
             // 6. Notificación a TIC (Dentro del callback para asegurar que se guardó en BD)
             const sendSmtpEmail = new Brevo.SendSmtpEmail();
