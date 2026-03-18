@@ -141,53 +141,56 @@ app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
 });
 
 // 2. LISTADO CON FILTROS (GET)
-app.get('/api/solicitudes', (req, res) => {
+app.get('/api/solicitudes', async (req, res) => {
     const { inicio, fin, medio, proveedor, estado } = req.query;
     
-    // 1. Construcción dinámica de la consulta
+    // 1. Construcción dinámica de la consulta (Postgres usa $1, $2...)
     let sql = "SELECT * FROM solicitudes_compra WHERE 1=1";
     const values = [];
+    let count = 1;
 
     if (inicio && fin) {
-        sql += " AND fecha_creacion BETWEEN ? AND ?";
+        sql += ` AND fecha_creacion BETWEEN $${count++} AND $${count++}`;
         values.push(`${inicio} 00:00:00`, `${fin} 23:59:59`);
     }
     
     if (medio && medio !== "") { 
-        sql += " AND medio_pago = ?"; 
+        sql += ` AND medio_pago = $${count++}`; 
         values.push(medio); 
     }
     
     if (proveedor && proveedor !== "") {
-        sql += " AND (proveedor LIKE ? OR responsable LIKE ?)";
+        sql += ` AND (proveedor ILIKE $${count++} OR responsable ILIKE $${count++})`;
         values.push(`%${proveedor}%`, `%${proveedor}%`);
     }
     
     if (estado && estado !== "") { 
-        sql += " AND estado = ?"; 
+        sql += ` AND estado = $${count++}`; 
         values.push(estado); 
     }
 
-    // Orden jerárquico: Pendientes arriba, luego Aprobadas y Rechazadas por fecha reciente
-    sql += " ORDER BY FIELD(estado, 'Pendiente', 'Aprobado', 'Rechazado'), fecha_creacion DESC";
+    // 2. Orden jerárquico compatible con PostgreSQL (CASE WHEN)
+    sql += ` ORDER BY 
+                CASE estado 
+                    WHEN 'Pendiente' THEN 1 
+                    WHEN 'Aprobado' THEN 2 
+                    WHEN 'Rechazado' THEN 3 
+                    ELSE 4 
+                END, 
+                fecha_creacion DESC`;
 
-    // 2. Ejecución con manejo de errores robusto
-    db.query({ sql, values, timeout: 15000 }, (err, results) => {
-        if (err) {
-            // Log para que veas el error real en el panel de Render
-            console.error("❌ ERROR CRÍTICO EN /api/solicitudes:", err.code);
-            
-            /* IMPORTANTE: Devolvemos status 500 pero con un array vacío []. 
-               Esto evita el error "datos.forEach is not a function" en el frontend 
-               porque el frontend recibirá una lista (aunque esté vacía).
-            */
-            return res.status(500).json([]); 
-        }
+    try {
+        // 3. Ejecución usando async/await (librería pg)
+        const result = await db.query(sql, values);
+        
+        // Enviamos result.rows (que es el array de datos)
+        res.json(result.rows || []);
 
-        // 3. Respuesta exitosa
-        // Si por alguna razón no hay resultados, enviamos un array vacío por defecto
-        res.json(results || []);
-    });
+    } catch (err) {
+        console.error("❌ ERROR CRÍTICO EN /api/solicitudes:", err.message);
+        // Devolvemos array vacío para que el frontend no rompa
+        res.status(500).json([]); 
+    }
 });
 
 // 3. ACTUALIZAR ESTADO (APROBAR/RECHAZAR DESDE ADMIN.HTML)
