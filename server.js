@@ -1,21 +1,35 @@
 
-const express = require('express');			
-const { Pool } = require('pg');			
-const cors = require('cors');			
-const multer = require('multer');			
-const path = require('path');			
-const fs = require('fs');			
-const Brevo = require('@getbrevo/brevo');			
-const cloudinary = require('cloudinary').v2;			
-const { CloudinaryStorage } = require('multer-storage-cloudinary');			
-
+const express = require('express');
+const { Pool } = require('pg'); // ✅ Corregido
+const cors = require('cors');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const Brevo = require('@getbrevo/brevo');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-const storage = multer.memoryStorage();
+// 1. Configuración de Cloudinary (Asegúrate de tener estas variables en Render)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// 2. Configuración de Multer con Cloudinary (Para que los PDF se guarden de verdad)
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'cotizaciones_rsb',
+    format: async (req, file) => 'pdf', 
+    public_id: (req, file) => Date.now() + '-' + file.originalname,
+  },
+});
 const upload = multer({ storage: storage });
 
 // Conexión a la DB de Render (PostgreSQL)
