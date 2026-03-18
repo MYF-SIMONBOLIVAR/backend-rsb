@@ -53,12 +53,15 @@ const iniciarTabla = async () => {
 iniciarTabla();
 
 // --- RUTA POST PARA SOLICITUDES ---
+// --- RUTA POST PARA SOLICITUDES ---
 app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
     try {
+        // 1. Captura de datos
         const { responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos } = req.body;
         const archivoNombre = req.file ? `Adjunto: ${req.file.originalname}` : 'Sin archivo';
-        const valorLimpio = valor ? String(valor).replace(/[^0-9.]/g, '') : 0;
+        const valorLimpio = valor ? String(valor).replace(/[^0-9.]/g, '') : '0';
 
+        // 2. SQL para PostgreSQL (Render)
         const sql = `INSERT INTO solicitudes_compra 
             (responsable, correo, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion, estado) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Pendiente') RETURNING id`;
@@ -75,21 +78,13 @@ app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
             archivoNombre
         ];
 
+        // 3. Ejecución en Base de Datos
         const result = await db.query(sql, values);
-        console.log("✅ Registro guardado con ID:", result.rows[0].id);
+        const nuevoId = result.rows[0].id;
+        console.log("✅ Registro guardado en Render DB ID:", nuevoId);
 
-        res.status(200).json({ success: true, id: result.rows[0].id });
-
-    } catch (error) {
-        console.error("❌ Error en el proceso:", error.message);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Sistema RSB en Render activo`));
-            
-            // 6. Notificación a TIC (Dentro del callback para asegurar que se guardó en BD)
+        // 4. Configuración y Envío de Correo (Brevo)
+        try {
             const sendSmtpEmail = new Brevo.SendSmtpEmail();
             sendSmtpEmail.subject = `Nueva Solicitud de Compra: ${responsable} - ${proveedor}`;
             sendSmtpEmail.htmlContent = `
@@ -105,7 +100,7 @@ app.listen(PORT, () => console.log(`🚀 Sistema RSB en Render activo`));
                                 <tr><td style="padding: 5px 0;"><b>Responsable:</b></td><td>${responsable}</td></tr>
                                 <tr><td style="padding: 5px 0;"><b>Proveedor:</b></td><td>${proveedor} (NIT: ${nit})</td></tr>
                                 <tr><td style="padding: 5px 0;"><b>Centro de Costos:</b></td><td>${centroCostos || 'No especificado'}</td></tr>
-                                <tr><td style="padding: 5px 0;"><b>Valor Total:</b></td><td style="font-size: 18px; color: #19287F;"><b>$${Number(valorNumerico).toLocaleString()}</b></td></tr>
+                                <tr><td style="padding: 5px 0;"><b>Valor Total:</b></td><td style="font-size: 18px; color: #19287F;"><b>$${Number(valorLimpio).toLocaleString()}</b></td></tr>
                             </table>
                         </div>
                         <p style="text-align: center; margin-top: 30px;">
@@ -118,16 +113,21 @@ app.listen(PORT, () => console.log(`🚀 Sistema RSB en Render activo`));
             sendSmtpEmail.to = [{ "email": "directoradministrativo@repuestossimonbolivar.com" }];
 
             apiInstance.sendTransacEmail(sendSmtpEmail).catch(e => console.error("Error Brevo:", e));
+        } catch (mailError) {
+            console.error("❌ Error preparando el correo:", mailError);
+        }
 
-            // Respuesta final al cliente
-            res.status(200).json({ success: true, message: 'Solicitud enviada', id: result.insertId });
-        });
+        // 5. Respuesta Final al Frontend
+        res.status(200).json({ success: true, message: 'Solicitud enviada', id: nuevoId });
 
     } catch (error) {
-        console.error("❌ Error Crítico:", error);
-        res.status(500).json({ error: "Error interno" });
+        console.error("❌ Error Crítico en el proceso:", error.message);
+        res.status(500).json({ error: "Error interno del servidor", detalle: error.message });
     }
 });
+
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log(`🚀 Sistema RSB en Render activo`));
 // 2. LISTADO CON FILTROS (GET)
 app.get('/api/solicitudes', (req, res) => {
     const { inicio, fin, medio, proveedor, estado } = req.query;
