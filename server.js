@@ -15,11 +15,13 @@ const PORT = process.env.PORT || 3000;
 
 // --- MIDDLEWARES ---
 app.use(cors({
-    origin: 'https://compras.repuestossimonbolivar.com', 
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type']
+ origin: ['https://compras.repuestossimonbolivar.com'],
+ methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+ allowedHeaders: ['Content-Type', 'Authorization'],
+ credentials: true,
 }));
-app.use(express.json());
+app.options('*', cors());
+
 
 // --- CONFIGURACIÓN DE CLOUDINARY ---
 cloudinary.config({
