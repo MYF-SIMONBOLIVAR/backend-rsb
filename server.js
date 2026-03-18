@@ -285,13 +285,13 @@ app.put('/api/solicitudes/:id', async (req, res) => {
 app.get('/api/stats', async (req, res) => {
     try {
         const sql = `
-            SELECT 
-                COUNT(*) FILTER (WHERE estado = 'Pendiente') as pendientes,
-                COUNT(*) FILTER (WHERE estado = 'Aprobado') as aprobadas,
-                COUNT(*) FILTER (WHERE estado = 'Rechazado') as rechazadas,
-                COALESCE(SUM(valor) FILTER (WHERE estado = 'Aprobado'), 0) as valorTotal,
-                COALESCE(SUM(valor) FILTER (WHERE estado = 'Pendiente'), 0) as valorPendiente
-            FROM solicitudes_compra`;
+    SELECT 
+        COUNT(*) FILTER (WHERE estado = 'Pendiente') as pendientes,
+        COUNT(*) FILTER (WHERE estado = 'Aprobado') as aprobadas,
+        COUNT(*) FILTER (WHERE estado = 'Rechazado') as rechazadas,
+        COALESCE(SUM(valor) FILTER (WHERE estado = 'Aprobado'), 0) as "valorTotal",
+        COALESCE(SUM(valor) FILTER (WHERE estado = 'Pendiente'), 0) as "valorPendiente"
+    FROM solicitudes_compra`;
         
         const result = await db.query(sql);
         res.json(result.rows[0]);
