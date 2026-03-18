@@ -63,47 +63,59 @@ const db = mysql.createPool({
 
 // A. CREAR SOLICITUD
 app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
-    // LOG DE SEGURIDAD: Ver qué llega al servidor
-    console.log("📥 Datos recibidos:", req.body);
+    try {
+        // 1. Datos del body
+        const { responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos } = req.body;
+        
+        // 2. Manejo de archivo (usando memoria para evitar fallos de disco en Render)
+        const archivoUrl = req.file ? `Archivo: ${req.file.originalname}` : 'Sin archivo';
+        
+        // 3. Limpieza de valor para decimal(15,2)
+        const valorNumerico = valor ? String(valor).replace(/[^0-9.]/g, '') : 0;
 
-    const { responsable, correo, proveedor, nit, valor, descripcion, medioPago, centroCostos } = req.body;
-    const archivoUrl = req.file ? "Archivo recibido" : "Sin archivo";
-    
-    // Limpiamos el valor para que sea solo números (Evita error de decimal)
-    const valorNumerico = valor ? String(valor).replace(/[^0-9.]/g, '') : 0;
+        // 4. SQL sincronizado con tu DESCRIBE
+        const sql = `INSERT INTO solicitudes_compra 
+            (responsable, correo, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion, estado) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente')`;
 
-    const sql = `INSERT INTO solicitudes_compra 
-        (responsable, correo, proveedor, nit, valor, descripcion, medio_pago, centro_costos, archivo_cotizacion, estado) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente')`;
+        const values = [
+            responsable || 'Anónimo',
+            correo || null,
+            proveedor || 'N/A',
+            nit || '0',
+            valorNumerico,
+            descripcion || '',
+            medioPago || 'No especificado',
+            centroCostos || 'General',
+            archivoUrl
+        ];
 
-    const values = [
-        responsable || 'Anónimo',
-        correo || null,
-        proveedor || 'N/A',
-        nit || '0',
-        valorNumerico,
-        descripcion || '',
-        medioPago || 'Efectivo',
-        centroCostos || 'General',
-        archivoUrl
-    ];
+        // 5. Ejecución
+        db.query(sql, values, (err, result) => {
+            if (err) {
+                console.error("❌ ERROR MYSQL:", err.message);
+                return res.status(500).json({ 
+                    error: "Error en Base de Datos", 
+                    mensaje: err.message 
+                });
+            }
 
-    db.query(sql, values, (err, result) => {
-        if (err) {
-            // 🚨 ESTO ES LO MÁS IMPORTANTE:
-            console.error("❌ ERROR DETECTADO:", err.message);
+            console.log("✅ Registro exitoso. ID:", result.insertId);
             
-            // Enviamos el error real al frontend para que lo veas en la consola (F12)
-            return res.status(500).json({ 
-                error: "Error en Base de Datos", 
-                mensaje_real: err.message,
-                sql_code: err.code 
-            });
-        }
+            // Intentar enviar correo (si falla el correo, la solicitud ya quedó guardada)
+            try {
+                enviarNotificacionBrevo(responsable, proveedor, valorNumerico);
+            } catch (mailErr) {
+                console.error("Error enviando mail:", mailErr);
+            }
 
-        console.log("✅ Insertado con éxito ID:", result.insertId);
-        res.status(200).json({ success: true, id: result.insertId });
-    });
+            res.status(200).json({ success: true, id: result.insertId });
+        });
+
+    } catch (error) {
+        console.error("❌ ERROR CRÍTICO:", error);
+        res.status(500).json({ error: "Fallo interno del servidor" });
+    }
 });
 
             // Notificación a TIC
