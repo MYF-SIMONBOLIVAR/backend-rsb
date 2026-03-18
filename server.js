@@ -112,12 +112,6 @@ app.post('/api/solicitudes', upload.single('cotizacion'), (req, res) => {
             res.status(200).json({ success: true, id: result.insertId });
         });
 
-    } catch (error) {
-        console.error("❌ ERROR CRÍTICO:", error);
-        res.status(500).json({ error: "Fallo interno del servidor" });
-    }
-
-
             // Notificación a TIC
             const sendSmtpEmail = new Brevo.SendSmtpEmail();
             sendSmtpEmail.subject = ` Nueva Solicitud de Compra: ${responsable} - ${proveedor}`;
