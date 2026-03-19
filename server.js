@@ -79,7 +79,7 @@ app.post('/api/solicitudes', upload.single('cotizacion'), async (req, res) => {
         const valorNumerico = parseFloat(String(valor).replace(/[^0-9.]/g, '')) || 0;
         
         // 3. Manejo del archivo
-        const archivoUrl = req.file ? `Adjunto: ${req.file.originalname}` : 'Sin archivo';
+        const archivoUrl = req.file ? req.file.path : 'Sin archivo';
 
         // 4. SQL: 10 columnas = 10 marcadores ($1 al $10)
         // Columnas: 1.responsable, 2.correo, 3.proveedor, 4.nit, 5.valor, 6.descripcion, 7.medio_pago, 8.centro_costos, 9.archivo_cotizacion, 10.estado
