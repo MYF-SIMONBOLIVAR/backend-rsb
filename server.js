@@ -14,6 +14,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (req, res) => {
+    res.send('Servidor de Repuestos Simón Bolívar operando correctamente');
+});
+
 // 1. Configuración de Cloudinary (Asegúrate de tener estas variables en Render)
 cloudinary.config({
   cloud_name: process.env.NAME,
