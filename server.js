@@ -29,11 +29,16 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
+    // Limpiamos el nombre para evitar el ".undefined"
+    const nombreLimpio = file.originalname.split('.')[0].replace(/[^a-zA-Z0-9]/g, "_");
+    
     return {
       folder: 'cotizaciones_rsb',
-      resource_type: 'raw', // Para que acepte PDFs correctamente
-      public_id: Date.now() + '-' + file.originalname.split('.')[0].replace(/[^a-zA-Z0-9]/g, "_"),
-      format: 'pdf',
+      resource_type: 'raw', // <--- ESTO ES LO MÁS IMPORTANTE
+      public_id: `${Date.now()}-${nombreLimpio}`,
+      // Quitamos la línea de 'format: pdf' si está dando problemas 
+      // o la dejamos como string fijo:
+      format: 'pdf' 
     };
   },
 });
