@@ -25,23 +25,32 @@ cloudinary.config({
   api_secret: process.env.SECRET
 });
 
-// 2. Configuración de Multer con Cloudinary (Para que los PDF se guarden de verdad)
+// 2. Configuración dinámicamente adaptada para Imágenes y PDFs
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
-    // Limpiamos el nombre para evitar el ".undefined"
+    // Limpiamos el nombre original del archivo
     const nombreLimpio = file.originalname.split('.')[0].replace(/[^a-zA-Z0-9]/g, "_");
-    
+    const esImagen = file.mimetype.startsWith('image/');
+
+    if (esImagen) {
+      return {
+        folder: 'cotizaciones_rsb',
+        resource_type: 'image', // Cloudinary procesa y optimiza la imagen correctamente
+        public_id: `${Date.now()}-${nombreLimpio}`
+        // No forzamos formato para respetar la extensión original (png, jpg, etc.)
+      };
+    }
+
+    // Para archivos PDF u otros documentos no de imagen
     return {
       folder: 'cotizaciones_rsb',
-      resource_type: 'raw', // <--- ESTO ES LO MÁS IMPORTANTE
-      public_id: `${Date.now()}-${nombreLimpio}`,
-      // Quitamos la línea de 'format: pdf' si está dando problemas 
-      // o la dejamos como string fijo:
-      format: 'pdf' 
+      resource_type: 'raw',
+      public_id: `${Date.now()}-${nombreLimpio}`
     };
   },
 });
+
 const upload = multer({ storage: storage });
 
 // Conexión a la DB de Render (PostgreSQL)
