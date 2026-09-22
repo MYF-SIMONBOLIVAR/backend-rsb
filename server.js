@@ -25,28 +25,33 @@ cloudinary.config({
   api_secret: process.env.SECRET
 });
 
+
 // 2. Configuración dinámicamente adaptada para Imágenes y PDFs
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
-    // Limpiamos el nombre original del archivo
-    const nombreLimpio = file.originalname.split('.')[0].replace(/[^a-zA-Z0-9]/g, "_");
+    // 1. Extraemos la extensión original de forma segura (ej: ".pdf", ".jpg")
+    const ext = path.extname(file.originalname);
+    
+    // 2. Limpiamos el nombre original sin afectar la extensión (soporta nombres como "mi.archivo.pdf")
+    const nombreLimpio = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, "_");
+    
     const esImagen = file.mimetype.startsWith('image/');
 
     if (esImagen) {
       return {
         folder: 'cotizaciones_rsb',
-        resource_type: 'image', // Cloudinary procesa y optimiza la imagen correctamente
-        public_id: `${Date.now()}-${nombreLimpio}`
-        // No forzamos formato para respetar la extensión original (png, jpg, etc.)
+        resource_type: 'image', // Cloudinary procesa y optimiza la imagen
+        public_id: `${Date.now()}-${nombreLimpio}` // Las imágenes no necesitan extensión aquí
       };
     }
 
-    // Para archivos PDF u otros documentos no de imagen
+    // Para archivos PDF u otros documentos
     return {
       folder: 'cotizaciones_rsb',
       resource_type: 'raw',
-      public_id: `${Date.now()}-${nombreLimpio}`
+      // LA SOLUCIÓN ESTÁ AQUÍ: Le volvemos a pegar la extensión al final del public_id
+      public_id: `${Date.now()}-${nombreLimpio}${ext}` 
     };
   },
 });
