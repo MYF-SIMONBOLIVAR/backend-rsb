@@ -302,7 +302,7 @@ app.put('/api/solicitudes/:id', async (req, res) => {
                 </div>
             </div>`;
 
-        sendSmtpEmail.sender = { "name": "Sistema de Compras RSB", "email": "notificacionesticsimonbolivar@gmail.com
+        sendSmtpEmail.sender = { "name": "Sistema de Compras RSB", "email": "notificacionesticsimonbolivar@gmail.com"
 
 " };
         sendSmtpEmail.to = [{ "email": correo }];
