@@ -168,7 +168,7 @@ async function enviarNotificacionAdmin(responsable, proveedor, nit, centroCostos
                 </div>
             </div>`;
 
-        sendSmtpEmail.sender = { "name": "Sistema de Compras RSB", "email": "svillada@repuestossimonbolivar.com" };
+        sendSmtpEmail.sender = { "name": "Sistema de Compras RSB", "email": "notificacionesticsimonbolivar@gmail.com" };
         sendSmtpEmail.to = [{ "email": "smartinez@repuestossimonbolivar.com" }];
 
         await apiInstance.sendTransacEmail(sendSmtpEmail);
@@ -302,7 +302,9 @@ app.put('/api/solicitudes/:id', async (req, res) => {
                 </div>
             </div>`;
 
-        sendSmtpEmail.sender = { "name": "Sistema de Compras RSB", "email": "svillada@repuestossimonbolivar.com" };
+        sendSmtpEmail.sender = { "name": "Sistema de Compras RSB", "email": "notificacionesticsimonbolivar@gmail.com
+
+" };
         sendSmtpEmail.to = [{ "email": correo }];
 
         // D. Envío asíncrono del correo
